@@ -20,18 +20,21 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import LoadingButton from "./ui/loading-button";
 import { useRouter } from "next/navigation";
-import {Note} from "@prisma/client";
-import {useState} from "react";
+import { Note } from "@prisma/client";
+import { useState } from "react";
 
 interface AddEditNoteDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  noteToEdit? : Note
+  noteToEdit?: Note;
 }
 
-const AddEditNoteDialog = ({ open, setOpen, noteToEdit }: AddEditNoteDialogProps) => {
-
-  const [deleteInProgress, setDeleteInProgress] = useState(false)
+const AddEditNoteDialog = ({
+  open,
+  setOpen,
+  noteToEdit,
+}: AddEditNoteDialogProps) => {
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
 
   const router = useRouter();
   const form = useForm<CreateNoteSchema>({
@@ -39,32 +42,28 @@ const AddEditNoteDialog = ({ open, setOpen, noteToEdit }: AddEditNoteDialogProps
     defaultValues: {
       title: noteToEdit?.title || "",
       content: noteToEdit?.content || "",
-
     },
   });
 
   async function onSubmit(input: CreateNoteSchema) {
     try {
-      if(noteToEdit){
+      if (noteToEdit) {
         const response = await fetch("/api/notes", {
           method: "PUT",
           body: JSON.stringify({
             id: noteToEdit.id,
-            ...input
-          }) 
-        })
+            ...input,
+          }),
+        });
         if (!response.ok) throw new Error("Status code: " + response.status);
-       
-
-      }else{
+      } else {
         const response = await fetch("/api/notes", {
           method: "POST",
           body: JSON.stringify(input),
         });
-  
+
         if (!response.ok) throw new Error("Status code: " + response.status);
         form.reset();
-
       }
       router.refresh();
       setOpen(false);
@@ -74,16 +73,16 @@ const AddEditNoteDialog = ({ open, setOpen, noteToEdit }: AddEditNoteDialogProps
     }
   }
 
-  async function deleteNode(){
-    if(!noteToEdit) return;
+  async function deleteNode() {
+    if (!noteToEdit) return;
     setDeleteInProgress(true);
     try {
       const response = await fetch("/api/notes", {
         method: "DELETE",
         body: JSON.stringify({
-          id: noteToEdit.id
-        })
-      })
+          id: noteToEdit.id,
+        }),
+      });
       if (!response.ok) throw new Error("Status code: " + response.status);
       router.refresh();
       setOpen(false);
@@ -91,16 +90,15 @@ const AddEditNoteDialog = ({ open, setOpen, noteToEdit }: AddEditNoteDialogProps
       console.error(error);
       alert("Something went wrong. Please try again");
     } finally {
-      setDeleteInProgress(false)
+      setDeleteInProgress(false);
     }
-
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add Note</DialogTitle>
+        <DialogHeader className="items-center">
+          <DialogTitle>{noteToEdit ? "Edit Note" : "Add Note"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
@@ -138,7 +136,9 @@ const AddEditNoteDialog = ({ open, setOpen, noteToEdit }: AddEditNoteDialogProps
                   loading={deleteInProgress}
                   disabled={form.formState.isSubmitting}
                   onClick={deleteNode}
-                >Delete Node</LoadingButton>
+                >
+                  Delete Node
+                </LoadingButton>
               )}
               <LoadingButton
                 type="submit"
