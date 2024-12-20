@@ -9,11 +9,17 @@ const UpdateSchema = z.object({
   whatsappNumber: z.string().regex(/^\d{8}$/, 'WhatsApp number must be 8 digits'),
 });
 
-export async function POST(request: Request, context: { params: { id: string } }) {
-  try {
-    // Destructure params from context
-    const { params } = context;
+interface RouteContext {
+  params: {
+    id: string;
+  };
+}
 
+export async function POST(
+  request: Request,
+  { params }: RouteContext
+) {
+  try {
     // Authenticate the user
     const { userId } = await auth();
     if (!userId) {
