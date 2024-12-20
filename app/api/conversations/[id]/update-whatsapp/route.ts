@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { supabase } from '@/lib/api/supabase';
@@ -9,16 +9,16 @@ const UpdateSchema = z.object({
   whatsappNumber: z.string().regex(/^\d{8}$/, 'WhatsApp number must be 8 digits'),
 });
 
-interface RouteContext {
+type ApiRouteContext = {
   params: {
     id: string;
   };
-}
+};
 
 export async function POST(
-  request: Request,
-  { params }: RouteContext
-) {
+  req: NextRequest,
+  context: ApiRouteContext
+): Promise<NextResponse> {
   try {
     // Authenticate the user
     const { userId } = await auth();
@@ -27,14 +27,14 @@ export async function POST(
     }
 
     // Parse and validate the request body
-    const body = await request.json();
+    const body = await req.json();
     const { whatsappNumber } = UpdateSchema.parse(body);
 
     // Update the record in the database
     const { error } = await supabase
       .from('conversations')
       .update({ whatsapp_number: whatsappNumber })
-      .eq('id', params.id)
+      .eq('id', context.params.id)
       .eq('user_id', userId);
 
     // Handle potential database errors
