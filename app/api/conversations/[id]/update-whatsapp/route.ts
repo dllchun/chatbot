@@ -10,21 +10,23 @@ const UpdateSchema = z.object({
 });
 
 type ApiRouteContext = {
-  params: {
+  params:Promise<{
     id: string;
-  };
+  }>;
 };
 
 export async function POST(
   req: NextRequest,
   context: ApiRouteContext
-): Promise<NextResponse> {
+) {
   try {
     // Authenticate the user
     const { userId } = await auth();
     if (!userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
+
+    const { id } = await context.params;
 
     // Parse and validate the request body
     const body = await req.json();
@@ -34,7 +36,7 @@ export async function POST(
     const { error } = await supabase
       .from('conversations')
       .update({ whatsapp_number: whatsappNumber })
-      .eq('id', context.params.id)
+      .eq('id', id)
       .eq('user_id', userId);
 
     // Handle potential database errors
