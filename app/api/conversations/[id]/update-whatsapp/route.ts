@@ -8,7 +8,7 @@ const UpdateSchema = z.object({
   whatsappNumber: z.string().regex(/^\d{8}$/, 'WhatsApp number must be 8 digits'),
 });
 
-export async function POST(request: Request, context: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -21,7 +21,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     const { error } = await supabase
       .from('conversations')
       .update({ whatsapp_number: whatsappNumber })
-      .eq('id', context.params.id)
+      .eq('id', params.id)
       .eq('user_id', userId);
 
     if (error) {
