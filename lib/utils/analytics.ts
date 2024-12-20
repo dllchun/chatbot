@@ -5,12 +5,14 @@ export interface ResponseTimeDistribution {
   fast: number    // < 1 minute
   medium: number  // 1-5 minutes
   slow: number    // > 5 minutes
+  [key: string]: number
 }
 
 export interface ConversationLengthDistribution {
   short: number   // 1-5 messages
   medium: number  // 6-15 messages
   long: number    // > 15 messages
+  [key: string]: number
 }
 
 export interface TimeOfDayDistribution {
@@ -18,6 +20,7 @@ export interface TimeOfDayDistribution {
   afternoon: number  // 12-18
   evening: number    // 18-24
   night: number      // 0-6
+  [key: string]: number
 }
 
 export interface UserEngagementMetrics {
@@ -47,6 +50,10 @@ export interface PerformanceMetrics {
   handoffRate: number           // Rate of conversations requiring human handoff
   successRate: number           // Rate of successfully resolved conversations
   averageResponseTime: number   // Already existing
+}
+
+export interface CountryDistribution {
+  [country: string]: number;
 }
 
 export interface AnalyticsResponse {
@@ -81,6 +88,8 @@ export interface AnalyticsResponse {
     weekly: number
     monthly: number
   }
+
+  countryDistribution: CountryDistribution;
 }
 
 // Helper Functions
@@ -164,6 +173,7 @@ export function processAnalytics(conversations: Array<{
   messages: Message[]
   source: string
   customer: string | null
+  country?: string | null
 }>): AnalyticsResponse {
   // Basic metrics
   const totalConversations = conversations.length
@@ -186,6 +196,15 @@ export function processAnalytics(conversations: Array<{
   let bounceCount = 0
   let firstResponseTimes: number[] = []
   let userConversationCounts: Record<string, number> = {}
+
+  // Initialize keyword tracking for user messages only
+  const userKeywordCounts: Record<string, number> = {}
+  let totalUserMessageLength = 0
+  let userMessageCount = 0
+  const userQueries: Record<string, number> = {}
+
+  // Initialize country distribution
+  const countryDistribution: CountryDistribution = {};
 
   conversations.forEach(conv => {
     const messages = conv.messages
@@ -226,13 +245,26 @@ export function processAnalytics(conversations: Array<{
       }
     }
 
-    // Extract keywords and message lengths
+    // Extract keywords and message lengths from user messages only
     messages.forEach(msg => {
-      totalMessageLength += msg.content.length
-      extractKeywords(msg.content).forEach(keyword => {
-        keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1
-      })
+      if (msg.role === 'user') {
+        userMessageCount++
+        totalUserMessageLength += msg.content.length
+        
+        // Store the complete user query
+        userQueries[msg.content.toLowerCase()] = (userQueries[msg.content.toLowerCase()] || 0) + 1
+        
+        // Extract keywords from user messages
+        extractKeywords(msg.content).forEach(keyword => {
+          userKeywordCounts[keyword] = (userKeywordCounts[keyword] || 0) + 1
+        })
+      }
     })
+
+    // Track country distribution
+    if (conv.country) {
+      countryDistribution[conv.country] = (countryDistribution[conv.country] || 0) + 1;
+    }
   })
 
   // Calculate user engagement metrics
@@ -245,15 +277,15 @@ export function processAnalytics(conversations: Array<{
     bounceRate: totalConversations > 0 ? (bounceCount / totalConversations) * 100 : 0
   }
 
-  // Calculate content metrics
+  // Calculate content metrics for user messages only
   const content: ContentMetrics = {
-    averageMessageLength: totalMessages > 0 ? totalMessageLength / totalMessages : 0,
+    averageMessageLength: userMessageCount > 0 ? totalUserMessageLength / userMessageCount : 0,
     messageContentDistribution: {}, // Would need NLP to categorize message content
-    topUserQueries: Object.entries(keywordCounts)
+    topUserQueries: Object.entries(userQueries)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 10)
       .map(([query, count]) => ({ query, count })),
-    commonKeywords: Object.entries(keywordCounts)
+    commonKeywords: Object.entries(userKeywordCounts)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 20)
       .map(([keyword, count]) => ({ keyword, count }))
@@ -270,28 +302,38 @@ export function processAnalytics(conversations: Array<{
     averageResponseTime: totalConversations > 0 ? totalResponseTime / totalConversations : 0
   }
 
-  // Messages by date (last 7 days)
-  const last7Days = new Array(7).fill(0).map((_, i) => {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    return date.toISOString().split('T')[0]
-  }).reverse() // Reverse to show oldest to newest
+  // Messages by date (last 7 days with proper date handling)
+  const messagesByDate = (() => {
+    const dates: { [key: string]: number } = {}
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-  const messagesByDate = last7Days.map(date => {
-    const dayMessages = conversations.reduce((sum, conv) => {
-      // Check if the conversation has any messages from this date
-      const messagesOnDate = conv.messages.filter(msg => {
-        if (!msg.timestamp) return false
-        return msg.timestamp.startsWith(date)
-      }).length
-      return sum + messagesOnDate
-    }, 0)
-
-    return {
-      date,
-      count: dayMessages
+    // Initialize last 7 days with 0 counts
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      dates[dateStr] = 0
     }
-  })
+
+    // Count conversations by creation date
+    conversations.forEach(conv => {
+      const convDate = new Date(conv.created_at)
+      convDate.setHours(0, 0, 0, 0)
+      const dateStr = convDate.toISOString().split('T')[0]
+      
+      if (dates.hasOwnProperty(dateStr)) {
+        // Count the number of messages in this conversation
+        const messageCount = conv.messages.length
+        dates[dateStr] += messageCount
+      }
+    })
+
+    // Convert to array format and ensure dates are sorted
+    return Object.entries(dates)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  })()
 
   // Calculate growth metrics (simplified - could be more sophisticated)
   const now = new Date()
@@ -333,6 +375,8 @@ export function processAnalytics(conversations: Array<{
       weekly: 0,
       monthly: 0
     },
-    conversationGrowth
+    conversationGrowth,
+
+    countryDistribution,
   }
 } 

@@ -189,7 +189,8 @@ export async function GET(request: Request) {
         daily: 0,
         weekly: 0,
         monthly: 0
-      }
+      },
+      countryDistribution: data.countryDistribution || {}
     }
 
     return NextResponse.json(response)
