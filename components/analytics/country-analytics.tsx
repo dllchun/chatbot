@@ -1,14 +1,33 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { WorldMap } from '@/components/analytics/world-map'
 import { DistributionCard } from '@/components/analytics/distribution-card'
-import type { CountryDistribution } from '@/lib/utils/analytics'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { AnalyticsResponse } from '@/lib/utils/analytics'
 
 interface CountryAnalyticsProps {
-  countryDistribution: CountryDistribution
+  analytics: AnalyticsResponse | null
+  isLoading: boolean
 }
 
-export function CountryAnalytics({ countryDistribution }: CountryAnalyticsProps) {
-  const formatDistributionData = (data: CountryDistribution) => {
+export function CountryAnalytics({ analytics, isLoading }: CountryAnalyticsProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Country Distribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[400px] w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!analytics?.countryDistribution) {
+    return null
+  }
+
+  const formatDistributionData = (data: AnalyticsResponse['countryDistribution']) => {
     return Object.entries(data).map(([key, value]) => ({
       key,
       value,
@@ -16,20 +35,17 @@ export function CountryAnalytics({ countryDistribution }: CountryAnalyticsProps)
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Country Map</CardTitle>
         </CardHeader>
         <CardContent>
-          <WorldMap countryDistribution={countryDistribution} />
+          <WorldMap countryDistribution={analytics.countryDistribution} />
         </CardContent>
       </Card>
 
-      <DistributionCard
-        title="Country Distribution"
-        items={formatDistributionData(countryDistribution)}
-      />
+     
     </div>
   )
 } 

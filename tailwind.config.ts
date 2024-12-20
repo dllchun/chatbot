@@ -48,10 +48,6 @@ const config = {
   				DEFAULT: "hsl(var(--popover))",
   				foreground: "hsl(var(--popover-foreground))",
   			},
-  			card: {
-  				DEFAULT: "hsl(var(--card))",
-  				foreground: "hsl(var(--card-foreground))",
-  			},
   		},
   		borderRadius: {
   			lg: "var(--radius)",
@@ -74,7 +70,7 @@ const config = {
   		},
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("@tailwindcss/typography")],
 } satisfies Config;
 
 export default config;

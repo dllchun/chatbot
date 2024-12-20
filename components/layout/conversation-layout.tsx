@@ -19,23 +19,23 @@ export function ConversationLayout({
   onMobileListChange
 }: ConversationLayoutProps) {
   return (
-    <div className="fixed inset-0 top-16 flex">
+    <div className="fixed inset-0 top-16 flex bg-white">
       {/* Sidebar */}
       <div
-        className={`
-          w-full md:w-80 lg:w-96 border-r border-slate-200 bg-white
-          ${showMobileList ? 'block' : 'hidden md:block'}
-        `}
+        className={cn(
+          "w-full border-r border-slate-200 bg-white md:w-80 lg:w-96",
+          showMobileList ? "block" : "hidden md:block"
+        )}
       >
         {sidebar}
       </div>
 
       {/* Main Content */}
       <div
-        className={`
-          flex-1 bg-white
-          ${showMobileList ? 'hidden md:block' : 'block'}
-        `}
+        className={cn(
+          "flex-1 bg-white",
+          showMobileList ? "hidden md:block" : "block"
+        )}
       >
         {content}
       </div>

@@ -84,10 +84,10 @@ export async function fetchChatbaseAPI<T>({
   
   const url = `${endpoint}?${searchParams.toString()}`
   
-  console.log('Making Chatbase API request:', {
-    url,
+  console.log('Chatbase request:', {
     method,
-    params,
+    endpoint: url.split('?')[0], // Log base URL without params
+    params
   })
 
   try {
@@ -108,7 +108,7 @@ export async function fetchChatbaseAPI<T>({
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('Chatbase API error:', {
+      console.error('Chatbase error:', {
         status: response.status,
         statusText: response.statusText,
         body: errorText,
@@ -118,7 +118,7 @@ export async function fetchChatbaseAPI<T>({
 
     return response.json()
   } catch (error) {
-    console.error('Failed to fetch from Chatbase API:', error)
+    console.error('Chatbase request failed:', error)
     throw error
   }
 }
@@ -155,8 +155,8 @@ export async function getConversations({
   chatbotId,
   page = 1,
   size = 20,
-  startDate = '2024-01-01',
-  endDate = new Date().toISOString().split('T')[0],
+  startDate = '2024-01-01T00:00:00.000Z',
+  endDate = new Date().toISOString(),
   useCache = true,
   authToken
 }: {
@@ -170,6 +170,14 @@ export async function getConversations({
   useCache?: boolean
   authToken?: string
 }): Promise<ChatbaseResponse<Conversation[]>> {
+  console.log('Fetching conversations:', {
+    chatbotId,
+    page,
+    size,
+    dateRange: { startDate, endDate },
+    useCache
+  })
+
   // Try to get from cache first if useCache is true
   if (useCache) {
     const cachedData = await CacheService.getConversations({
@@ -182,7 +190,10 @@ export async function getConversations({
     })
 
     if (cachedData.length > 0) {
-      console.log('Using cached conversations data')
+      console.log('Using cache:', {
+        count: cachedData.length,
+        firstId: cachedData[0]?.id
+      })
       return {
         data: cachedData as Conversation[],
         page,
@@ -200,8 +211,8 @@ export async function getConversations({
       chatbotId,
       page: page.toString(),
       size: size.toString(),
-      startDate,
-      endDate,
+      startDate: new Date(startDate).toISOString().split('T')[0], // Chatbase API expects YYYY-MM-DD
+      endDate: new Date(endDate).toISOString().split('T')[0], // Chatbase API expects YYYY-MM-DD
     },
   })
 

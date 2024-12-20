@@ -34,7 +34,7 @@ export function DistributionCard({ title, items }: DistributionCardProps) {
                   <div
                     className="h-full bg-primary transition-all"
                     style={{ 
-                      width: `${(item.value / total) * 100}%` 
+                      width: total > 0 ? `${(item.value / total) * 100}%` : '0%'
                     }}
                   />
                 </div>

@@ -237,30 +237,6 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      {/* Integration Examples */}
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Integration Examples</h2>
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-medium mb-2">Iframe Integration</h3>
-            <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
-              <code>{`<iframe
-  src="https://www.chatbase.co/chatbot-iframe/${chatbotId || '[YOUR-CHATBOT-ID]'}"
-  width="100%"
-  height="600"
-  frameborder="0"
-></iframe>`}</code>
-            </pre>
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-2">API Endpoint</h3>
-            <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
-              <code>{`/api/conversations?chatbotId=${chatbotId || '[YOUR-CHATBOT-ID]'}`}</code>
-            </pre>
-          </div>
-        </div>
-      </Card>
     </div>
   )
 } 

@@ -57,39 +57,40 @@ export interface CountryDistribution {
 }
 
 export interface AnalyticsResponse {
-  // Existing metrics
   totalConversations: number
   totalMessages: number
   totalUsers: number
-  engagementRate: number
   averageResponseTime: number
-  responseTimeDistribution: ResponseTimeDistribution
-  sourceDistribution: Record<string, number>
+  engagementRate: number
   messagesByDate: Array<{
     date: string
     count: number
   }>
-
-  // New metrics
-  conversationLengthDistribution: ConversationLengthDistribution
-  timeOfDayDistribution: TimeOfDayDistribution
-  userEngagement: UserEngagementMetrics
-  content: ContentMetrics
-  performance: PerformanceMetrics
-  
-  // Growth metrics
-  userRetention: {
-    daily: number
-    weekly: number
-    monthly: number
+  countryDistribution: Record<string, number>
+  sourceDistribution: Record<string, number>
+  performance: {
+    averageResponseTime: number
+    successRate: number
+    handoffRate: number
   }
+  userEngagement: {
+    bounceRate: number
+  }
+  responseTimeTrend: Array<{
+    date: string
+    averageTime: number
+  }>
+  content: ContentMetrics
   conversationGrowth: {
     daily: number
     weekly: number
     monthly: number
   }
-
-  countryDistribution: CountryDistribution;
+  responseTimeDistribution: ResponseTimeDistribution
+  conversationLengthDistribution: ConversationLengthDistribution
+  timeOfDayDistribution: TimeOfDayDistribution
+  userEngagementMetrics: UserEngagementMetrics
+  performanceMetrics: PerformanceMetrics
 }
 
 // Helper Functions
@@ -347,8 +348,16 @@ export function processAnalytics(conversations: Array<{
     monthly: conversations.filter(c => new Date(c.created_at) > monthAgo).length
   }
 
+  // Calculate response time trend
+  const responseTimeTrend = messagesByDate.map(({ date }) => ({
+    date,
+    averageTime: conversations
+      .filter(conv => conv.created_at.startsWith(date))
+      .reduce((sum, conv) => sum + calculateResponseTime(conv.messages), 0) / 
+      conversations.filter(conv => conv.created_at.startsWith(date)).length || 0
+  }))
+
   return {
-    // Existing metrics
     totalConversations,
     totalMessages,
     totalUsers: uniqueUsers,
@@ -361,22 +370,15 @@ export function processAnalytics(conversations: Array<{
     responseTimeDistribution,
     sourceDistribution,
     messagesByDate,
-
-    // New metrics
     conversationLengthDistribution,
     timeOfDayDistribution,
     userEngagement,
     content,
     performance,
-    
-    // Growth metrics
-    userRetention: {
-      daily: 0,  // Would need historical user data to calculate retention
-      weekly: 0,
-      monthly: 0
-    },
     conversationGrowth,
-
     countryDistribution,
+    userEngagementMetrics: userEngagement,
+    performanceMetrics: performance,
+    responseTimeTrend
   }
 } 

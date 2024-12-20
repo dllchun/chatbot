@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ContentMetrics } from '@/lib/utils/analytics'
+import ReactMarkdown from 'react-markdown'
 
 interface ContentAnalysisProps {
   content: ContentMetrics
@@ -18,8 +19,10 @@ export function ContentAnalysis({ content }: ContentAnalysisProps) {
             <div className="space-y-2">
               {content.topUserQueries.map(({ query, count }) => (
                 <div key={query} className="flex justify-between">
-                  <span className="text-sm">{query}</span>
-                  <span className="text-sm font-medium">{count}</span>
+                  <span className="text-sm prose prose-sm max-w-none">
+                    <ReactMarkdown>{query}</ReactMarkdown>
+                  </span>
+                  <span className="text-sm font-medium ml-2">{count}</span>
                 </div>
               ))}
             </div>
@@ -32,7 +35,7 @@ export function ContentAnalysis({ content }: ContentAnalysisProps) {
                   key={keyword}
                   className="rounded-full bg-primary/10 px-3 py-1 text-xs"
                 >
-                  {keyword} ({count})
+                  <ReactMarkdown className="inline">{keyword}</ReactMarkdown> ({count})
                 </div>
               ))}
             </div>

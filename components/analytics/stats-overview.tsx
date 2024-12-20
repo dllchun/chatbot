@@ -1,50 +1,87 @@
-import { MessageSquare, Users, MessageCircle, BarChart3 } from 'lucide-react'
-import { StatsCard } from '@/components/analytics/stats-card'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { MessageSquare, Users, Clock, TrendingUp } from 'lucide-react'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
 
 interface StatsOverviewProps {
-  analytics: AnalyticsResponse
+  analytics: AnalyticsResponse | null
+  isLoading: boolean
 }
 
-export function StatsOverview({ analytics }: StatsOverviewProps) {
+export function StatsOverview({ analytics, isLoading }: StatsOverviewProps) {
+  // Calculate percentage changes based on previous period
+  const calculateChange = (current: number, previous: number) => {
+    if (previous === 0) return '0'
+    return ((current - previous) / previous * 100).toFixed(1)
+  }
+
+  const stats = [
+    {
+      name: 'Total Conversations',
+      value: analytics?.totalConversations || 0,
+      change: analytics ? calculateChange(
+        analytics.totalConversations,
+        analytics.conversationGrowth.daily
+      ) : '0',
+      icon: MessageSquare
+    },
+    {
+      name: 'Total Users',
+      value: analytics?.totalUsers || 0,
+      change: analytics ? calculateChange(
+        analytics.totalUsers,
+        analytics.userEngagementMetrics.averageConversationsPerUser
+      ) : '0',
+      icon: Users
+    },
+    {
+      name: 'Avg. Response Time',
+      value: analytics?.averageResponseTime ? `${Math.round(analytics.averageResponseTime / 1000)}s` : '0s',
+      change: analytics ? calculateChange(
+        analytics.averageResponseTime,
+        analytics.performanceMetrics.averageResponseTime
+      ) : '0',
+      icon: Clock
+    },
+    {
+      name: 'Engagement Rate',
+      value: analytics?.engagementRate ? `${Math.round(analytics.engagementRate)}%` : '0%',
+      change: analytics ? calculateChange(
+        analytics.engagementRate,
+        analytics.userEngagementMetrics.repeatUserRate
+      ) : '0',
+      icon: TrendingUp
+    }
+  ]
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatsCard
-        title="Total Conversations"
-        value={analytics.totalConversations.toLocaleString()}
-        trend={{ 
-          value: analytics.conversationGrowth.daily, 
-          label: "from yesterday" 
-        }}
-        icon={<MessageSquare className="h-4 w-4" />}
-      />
-      <StatsCard
-        title="Total Messages"
-        value={analytics.totalMessages.toLocaleString()}
-        trend={{ 
-          value: analytics.userEngagement.averageMessagesPerUser, 
-          label: "avg per user" 
-        }}
-        icon={<MessageCircle className="h-4 w-4" />}
-      />
-      <StatsCard
-        title="Total Users"
-        value={analytics.totalUsers.toLocaleString()}
-        trend={{ 
-          value: analytics.userRetention.daily, 
-          label: "retention rate" 
-        }}
-        icon={<Users className="h-4 w-4" />}
-      />
-      <StatsCard
-        title="Engagement Rate"
-        value={`${analytics.engagementRate.toFixed(1)}%`}
-        trend={{ 
-          value: analytics.userEngagement.repeatUserRate, 
-          label: "repeat users" 
-        }}
-        icon={<BarChart3 className="h-4 w-4" />}
-      />
+    <div className="grid gap-4 grid-cols-4">
+      {stats.map((stat) => (
+        <Card key={stat.name} className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="rounded-lg bg-primary/10 p-2 text-primary">
+              <stat.icon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted">{stat.name}</p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-20" />
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-2xl font-semibold">{stat.value}</h3>
+                  {stat.change !== '0' && (
+                    <span className={`text-xs ${
+                      !stat.change.startsWith('-') ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {!stat.change.startsWith('-') ? '+' : ''}{stat.change}%
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      ))}
     </div>
   )
 } 

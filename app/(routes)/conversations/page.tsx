@@ -61,21 +61,33 @@ export default function ConversationsPage() {
       
       switch (filters.dateRange) {
         case 'today':
-          startDate = today.toISOString().split('T')[0]
-          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          startDate = today.toISOString()
+          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
           break
         case 'week':
-          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          startDate = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          startDate = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString()
           break
         case 'month':
-          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate()).toISOString().split('T')[0]
+          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate()).toISOString()
           break
         default:
-          startDate = '2024-01-01'
-          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          // For 'all', use a wide date range to get all conversations
+          startDate = '2024-01-01T00:00:00.000Z'
+          endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
       }
+
+      console.log('Date Range:', {
+        dateRangeFilter: filters.dateRange,
+        startDate,
+        endDate,
+        now: new Date().toISOString(),
+        localStartDate: new Date(startDate).toLocaleString(),
+        localEndDate: new Date(endDate).toLocaleString(),
+        utcStartDate: new Date(startDate).toUTCString(),
+        utcEndDate: new Date(endDate).toUTCString()
+      })
 
       // Build query parameters
       const params = new URLSearchParams({
@@ -99,13 +111,25 @@ export default function ConversationsPage() {
       }
 
       const data = await response.json()
+      console.log('API Response Structure:', {
+        hasData: Boolean(data.data),
+        dataType: data.data ? typeof data.data : null,
+        isArray: Array.isArray(data.data),
+        firstItem: data.data?.[0] ? {
+          id: data.data[0].id,
+          source: data.data[0].source,
+          hasMessages: Boolean(data.data[0].messages),
+          messagesType: data.data[0].messages ? typeof data.data[0].messages : null,
+          isMessagesArray: Array.isArray(data.data[0].messages)
+        } : null
+      })
       
       if (append) {
         setConversations(prev => [...prev, ...data.data])
       } else {
         setConversations(data.data)
       }
-      
+
       setHasMore(data.data.length === 20) // If we got less than 20 results, there are no more pages
     } catch (err) {
       console.error('Failed to fetch conversations:', err)
@@ -118,10 +142,24 @@ export default function ConversationsPage() {
 
   useEffect(() => {
     if (isConfigured) {
+      console.log('Fetching conversations with filters:', {
+        source: filters.source,
+        dateRange: filters.dateRange,
+        messageCount: filters.messageCount,
+        searchQuery
+      })
       setPage(1)
       fetchConversations(1)
     }
   }, [getToken, filters.source, filters.dateRange, isConfigured])
+
+  useEffect(() => {
+    console.log('Search or message count filter changed:', {
+      searchQuery,
+      messageCountFilter: filters.messageCount,
+      totalConversations: conversations.length
+    })
+  }, [searchQuery, filters.messageCount, conversations.length])
 
   const handleLoadMore = () => {
     if (!isLoadingMore && hasMore) {
@@ -139,13 +177,32 @@ export default function ConversationsPage() {
   }
 
   const filteredConversations = conversations.filter(conv => {
-    const matchesSearch = 
-      conv.customer?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      conv.messages.some(msg => 
+    console.log('Filtering conversation:', {
+      id: conv.id,
+      customer: conv.customer,
+      messageCount: conv.messages?.length,
+      hasMessages: Boolean(conv.messages),
+      messagesType: typeof conv.messages,
+      isMessagesArray: Array.isArray(conv.messages),
+      source: conv.source,
+      created_at: conv.created_at
+    })
+
+    const matchesSearch = searchQuery === "" || (
+      (conv.customer?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+      (Array.isArray(conv.messages) && conv.messages.some(msg => 
         msg.content.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      ))
+    )
 
     const matchesMessageCount = filters.messageCount === 'all' || (() => {
+      if (!Array.isArray(conv.messages)) {
+        console.log('Messages is not an array:', {
+          id: conv.id,
+          messages: conv.messages
+        })
+        return false
+      }
       const count = conv.messages.length
       switch (filters.messageCount) {
         case 'short':
@@ -159,7 +216,25 @@ export default function ConversationsPage() {
       }
     })()
 
+    console.log('Filter results:', {
+      id: conv.id,
+      matchesSearch,
+      matchesMessageCount,
+      searchQuery,
+      messageCountFilter: filters.messageCount
+    })
+
     return matchesSearch && matchesMessageCount
+  })
+
+  console.log('Filtered Conversations:', {
+    total: filteredConversations.length,
+    firstConv: filteredConversations[0] ? {
+      id: filteredConversations[0].id,
+      created_at: filteredConversations[0].created_at,
+      source: filteredConversations[0].source
+    } : null,
+    allIds: filteredConversations.map(conv => conv.id)
   })
 
   if (!isConfigured) {
@@ -185,7 +260,7 @@ export default function ConversationsPage() {
       sidebar={
         <div className="flex h-full flex-col">
           {/* Search and Filter Header */}
-          <div className="border-b p-4 space-y-4">
+          <div className="flex-none border-b p-4 space-y-4">
             <div className="flex items-center gap-2">
               <SearchInput
                 placeholder="Search conversations..."
@@ -260,29 +335,31 @@ export default function ConversationsPage() {
             )}
           </div>
 
-          {/* Conversation List */}
-          <div 
-            className="flex-1 overflow-y-auto"
-            onScroll={handleScroll}
-          >
-            <ConversationList
-              conversations={filteredConversations}
-              selectedId={selectedConversation?.id}
-              onSelect={setSelectedConversation}
-              onMobileSelect={() => setShowMobileList(false)}
-            />
-            
-            {isLoadingMore && (
-              <div className="p-4 text-center text-sm text-muted">
-                Loading more conversations...
-              </div>
-            )}
-            
-            {!hasMore && conversations.length > 0 && (
-              <div className="p-4 text-center text-sm text-muted">
-                No more conversations to load
-              </div>
-            )}
+          {/* Conversation List Container */}
+          <div className="flex-1 overflow-hidden">
+            <div 
+              className="h-full overflow-y-auto"
+              onScroll={handleScroll}
+            >
+              <ConversationList
+                conversations={filteredConversations}
+                selectedId={selectedConversation?.id}
+                onSelect={setSelectedConversation}
+                onMobileSelect={() => setShowMobileList(false)}
+              />
+              
+              {isLoadingMore && (
+                <div className="p-4 text-center text-sm text-muted">
+                  Loading more conversations...
+                </div>
+              )}
+              
+              {!hasMore && conversations.length > 0 && (
+                <div className="p-4 text-center text-sm text-muted">
+                  No more conversations to load
+                </div>
+              )}
+            </div>
           </div>
         </div>
       }
