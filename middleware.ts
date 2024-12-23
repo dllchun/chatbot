@@ -56,6 +56,12 @@ export default clerkMiddleware(async (auth, request) => {
       return NextResponse.redirect(signInUrl);
     }
 
+    // If authenticated but accessing the root path "/", redirect to /conversations
+    if (path === '/') {
+      console.log('Authenticated user accessing root path, redirecting to /conversations');
+      return NextResponse.redirect(new URL('/conversations', request.url));
+    }
+
     // If authenticated, sync user data with Supabase
     try {
       const client = await clerkClient();

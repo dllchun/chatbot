@@ -12,8 +12,6 @@ export default function SignInPage() {
               footerActionLink: "text-green-500 hover:text-green-600",
             },
           }}
-          redirectUrl={"/"}
-          afterSignInUrl={"/"}
         />
       </div>
     </div>

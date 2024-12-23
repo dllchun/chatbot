@@ -346,6 +346,7 @@ export default function ConversationsPage() {
                 selectedId={selectedConversation?.id}
                 onSelect={setSelectedConversation}
                 onMobileSelect={() => setShowMobileList(false)}
+                chatbotId={chatbotId || undefined}
               />
               
               {isLoadingMore && (
