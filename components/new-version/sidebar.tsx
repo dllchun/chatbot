@@ -26,12 +26,14 @@ interface SidebarProps {
   onCollapse: (collapsed: boolean) => void
 }
 
-const menuItems = [
-  {
-    title: 'i2 Demo',
-    icon: LayoutDashboard,
-    href: '/new-version',
-  },
+interface MenuItem {
+  title: string
+  icon: any
+  href: string
+  external?: boolean
+}
+
+const menuItems: MenuItem[] = [
   {
     title: 'Playground',
     icon: LayoutDashboard,
@@ -54,16 +56,18 @@ const menuItems = [
   },
 ]
 
-const bottomMenuItems = [
+const bottomMenuItems: MenuItem[] = [
   {
     title: 'Support',
     icon: MessageCircle,
-    href: '/support',
+    href: 'https://i2.ai',
+    external: true,
   },
   {
     title: 'FAQ',
     icon: HelpCircle,
-    href: '/faq',
+    href: 'https://docs.i2.ai',
+    external: true,
   },
 ]
 
@@ -75,14 +79,14 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-[#25212d] text-white transition-all duration-300",
+      "flex flex-col h-full bg-[#25212d] text-white transition-all duration-300 fixed md:relative z-50",
       collapsed ? "w-[80px]" : "w-[280px]"
     )}>
       {/* Logo and Collapse Button */}
-      <div className="px-6 mb-8 flex items-center justify-between">
+      <div className="px-6 py-4 mb-4 flex items-center justify-between">
         {!collapsed && (
           <div className="text-xl font-bold flex items-center">
-            <span className="text-[#6B4EFF] mr-1">Agent</span>
+            <span className="text-[#6B4EFF] mr-1">i2</span>
             <span>.ai</span>
           </div>
         )}
@@ -100,14 +104,65 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
       </div>
 
       {/* Main Menu */}
-      <nav className="flex-1 px-4">
-        <div className="space-y-2">
+      <nav className="flex-1 px-4 overflow-y-auto">
+        <div className="space-y-1">
           {menuItems.map((item) => (
+            item.external ? (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  'flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors relative',
+                  'text-zinc-400 hover:text-white hover:bg-white/5'
+                )}
+              >
+                <item.icon size={20} className="shrink-0" />
+                {!collapsed && <span className="ml-3">{item.title}</span>}
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors relative',
+                  pathname === item.href
+                    ? 'bg-[#6B4EFF]/10 text-[#6B4EFF]'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                )}
+              >
+                <item.icon size={20} className="shrink-0" />
+                {!collapsed && <span className="ml-3">{item.title}</span>}
+              </Link>
+            )
+          ))}
+        </div>
+      </nav>
+
+      {/* Bottom Menu */}
+      <div className="px-4 space-y-2 mb-6">
+        {bottomMenuItems.map((item) => (
+          item.external ? (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                'flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors',
+                'text-zinc-400 hover:text-white hover:bg-white/5'
+              )}
+            >
+              <item.icon size={20} className="shrink-0" />
+              {!collapsed && <span className="ml-3">{item.title}</span>}
+            </a>
+          ) : (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors relative',
+                'flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors',
                 pathname === item.href
                   ? 'bg-[#6B4EFF]/10 text-[#6B4EFF]'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -116,26 +171,7 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
               <item.icon size={20} className="shrink-0" />
               {!collapsed && <span className="ml-3">{item.title}</span>}
             </Link>
-          ))}
-        </div>
-      </nav>
-
-      {/* Bottom Menu */}
-      <div className="px-4 space-y-2 mb-6">
-        {bottomMenuItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              'flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors',
-              pathname === item.href
-                ? 'bg-[#6B4EFF]/10 text-[#6B4EFF]'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5'
-            )}
-          >
-            <item.icon size={20} className="shrink-0" />
-            {!collapsed && <span className="ml-3">{item.title}</span>}
-          </Link>
+          )
         ))}
       </div>
 

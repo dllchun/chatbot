@@ -7,7 +7,7 @@ interface ContainerProps {
 
 export function Container({ children, className }: ContainerProps) {
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-2 md:p-6 overflow-hidden">
       <div className={cn(
         "bg-[#f8f8fb] h-full rounded-xl shadow-2xl overflow-hidden",
         className
