@@ -1,44 +1,23 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSettings } from '@/lib/store/settings'
 import { useAuth } from '@clerk/nextjs'
 import { ChatbotRequired } from '@/components/ui/chatbot-required'
+import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
+import { LoadingPage } from '@/components/ui/loading'
 
 export default function PlaygroundPage() {
-  const { chatbotId, isConfigured } = useSettings()
-  const { getToken } = useAuth()
-  const [loading, setLoading] = useState(true)
+  const { chatbotId, isConfigured, isLoading: isPreferenceLoading, isInitialized } = useChatbotPreference()
+  const { isLoaded: isAuthLoaded } = useAuth()
+  const [mounted, setMounted] = useState(false)
 
+  // Wait until mounted to avoid hydration mismatch
   useEffect(() => {
-    const checkConfiguration = async () => {
-      try {
-        const token = await getToken({ template: 'supabase' })
-        if (!token) return
+    setMounted(true)
+  }, [])
 
-        const response = await fetch('/api/user/chatbot-preference', {
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        const data = await response.json()
-        if (data.needsConfiguration) {
-          return
-        }
-
-        setLoading(false)
-      } catch (error) {
-        console.error('Error checking configuration:', error)
-      }
-    }
-
-    checkConfiguration()
-  }, [getToken])
-
-  if (loading) {
-    return null
+  if (!mounted || !isAuthLoaded || !isInitialized) {
+    return <LoadingPage />
   }
 
   if (!isConfigured) {

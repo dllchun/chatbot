@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { useSettings } from '@/lib/store/settings'
 import { useAuth, useUser } from '@clerk/nextjs'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,10 +10,16 @@ import { Label } from '@/components/ui/label'
 import { Monitor, Moon, Sun, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const { chatbotId, setChatbotId, isConfigured } = useSettings()
+  const { 
+    chatbotId, 
+    isConfigured, 
+    isLoading: isPreferenceLoading,
+    setChatbotId 
+  } = useChatbotPreference()
   const { getToken, isLoaded: isAuthLoaded } = useAuth()
   const { isLoaded: isUserLoaded } = useUser()
   const [mounted, setMounted] = useState(false)
@@ -26,61 +31,11 @@ export default function SettingsPage() {
     setMounted(true)
   }, [])
 
-  // Fetch preferred chatbot ID on mount
   useEffect(() => {
-    const fetchPreference = async () => {
-      try {
-        // Wait for auth to be ready
-        if (!isAuthLoaded || !isUserLoaded) {
-          console.log('Auth not ready yet');
-          return
-        }
-
-        // Get token from Clerk
-        const token = await getToken()
-        if (!token) {
-          console.error('No auth token available')
-          return
-        }
-
-        console.log('Making API request with token');
-        const response = await fetch('/api/user/chatbot-preference', {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          cache: 'no-store'
-        })
-
-        console.log('API response status:', response.status);
-        const text = await response.text()
-        console.log('Raw response:', text)
-
-        let data
-        try {
-          data = JSON.parse(text)
-        } catch (e) {
-          console.error('Failed to parse response:', e)
-          return
-        }
-
-        console.log('Parsed data:', data)
-
-        if (data.chatbotId) {
-          setNewChatbotId(data.chatbotId)
-          setChatbotId(data.chatbotId)
-        }
-      } catch (error) {
-        console.error('Error fetching chatbot ID:', error)
-      }
+    if (chatbotId) {
+      setNewChatbotId(chatbotId)
     }
-
-    if (mounted) {
-      fetchPreference()
-    }
-  }, [mounted, setChatbotId, getToken, isAuthLoaded, isUserLoaded])
+  }, [chatbotId])
 
   if (!mounted || !isAuthLoaded || !isUserLoaded) {
     return null
@@ -94,7 +49,6 @@ export default function SettingsPage() {
 
     setLoading(true)
     try {
-      // Get token from Clerk (using same approach as fetch)
       const token = await getToken()
       if (!token) {
         throw new Error('No auth token available')
@@ -120,12 +74,12 @@ export default function SettingsPage() {
           const errorData = JSON.parse(text)
           errorMessage = errorData.error || errorMessage
         } catch (e) {
-          // Use text as is if not JSON
           errorMessage = text || errorMessage
         }
         throw new Error(errorMessage)
       }
 
+      // Update the local store after successful save
       setChatbotId(newChatbotId)
       toast.success('Chatbot ID updated successfully')
     } catch (error) {

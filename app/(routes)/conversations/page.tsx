@@ -7,11 +7,15 @@ import { ConversationList } from '@/components/conversations/conversation-list'
 import { ConversationDetail } from '@/components/conversations/conversation-detail'
 import { SearchInput } from '@/components/ui/search-input'
 import { Card } from '@/components/ui/card'
-import { Filter, Calendar, MessageSquare, User } from 'lucide-react'
+import { Filter, Calendar, MessageSquare, User, AlertCircle } from 'lucide-react'
 import { LoadingPage } from '@/components/ui/loading'
+
 import type { Conversation } from '@/types/api'
-import { useSettings } from '@/lib/store/settings'
 import { ChatbotRequired } from '@/components/ui/chatbot-required'
+import { useRouter } from 'next/navigation'
+import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
+import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 
 interface FilterOptions {
   source: string
@@ -20,8 +24,9 @@ interface FilterOptions {
 }
 
 export default function ConversationsPage() {
-  const { chatbotId, isConfigured } = useSettings()
+  const { chatbotId, isConfigured, isLoading: isPreferenceLoading, isInitialized } = useChatbotPreference()
   const { getToken } = useAuth()
+  const router = useRouter()
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [showMobileList, setShowMobileList] = useState(true)
@@ -39,6 +44,21 @@ export default function ConversationsPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  // Wait for preference to be initialized before fetching conversations
+  useEffect(() => {
+    if (!isInitialized || isPreferenceLoading) {
+      return
+    }
+
+    if (!chatbotId) {
+      setError('Please configure your Chatbot ID in settings')
+      setLoading(false)
+      return
+    }
+
+    fetchConversations(1, false)
+  }, [chatbotId, isInitialized, isPreferenceLoading])
 
   async function fetchConversations(pageNum: number, append = false) {
     try {
@@ -177,16 +197,7 @@ export default function ConversationsPage() {
   }
 
   const filteredConversations = conversations.filter(conv => {
-    console.log('Filtering conversation:', {
-      id: conv.id,
-      customer: conv.customer,
-      messageCount: conv.messages?.length,
-      hasMessages: Boolean(conv.messages),
-      messagesType: typeof conv.messages,
-      isMessagesArray: Array.isArray(conv.messages),
-      source: conv.source,
-      created_at: conv.created_at
-    })
+
 
     const matchesSearch = searchQuery === "" || (
       (conv.customer?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
@@ -216,26 +227,12 @@ export default function ConversationsPage() {
       }
     })()
 
-    console.log('Filter results:', {
-      id: conv.id,
-      matchesSearch,
-      matchesMessageCount,
-      searchQuery,
-      messageCountFilter: filters.messageCount
-    })
+
 
     return matchesSearch && matchesMessageCount
   })
 
-  console.log('Filtered Conversations:', {
-    total: filteredConversations.length,
-    firstConv: filteredConversations[0] ? {
-      id: filteredConversations[0].id,
-      created_at: filteredConversations[0].created_at,
-      source: filteredConversations[0].source
-    } : null,
-    allIds: filteredConversations.map(conv => conv.id)
-  })
+
 
   if (!isConfigured) {
     return <ChatbotRequired />
@@ -256,128 +253,163 @@ export default function ConversationsPage() {
   }
 
   return (
-    <ConversationLayout
-      sidebar={
-        <div className="flex h-full flex-col">
-          {/* Search and Filter Header */}
-          <div className="flex-none border-b p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <SearchInput
-                placeholder="Search conversations..."
-                onSearch={setSearchQuery}
-                className="flex-1"
-              />
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showFilters 
-                    ? 'bg-primary text-white' 
-                    : 'bg-white text-muted hover:bg-primary/10 hover:text-primary'
-                }`}
-              >
-                <Filter className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Filter Panel */}
-            {showFilters && (
-              <Card className="p-4 space-y-4 animate-scale">
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
-                    <MessageSquare className="h-4 w-4" />
-                    Source
-                  </label>
-                  <select
-                    value={filters.source}
-                    onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="all">All Sources</option>
-                    <option value="widget">Widget</option>
-                    <option value="whatsapp">WhatsApp</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
-                    <Calendar className="h-4 w-4" />
-                    Date Range
-                  </label>
-                  <select
-                    value={filters.dateRange}
-                    onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="today">Today</option>
-                    <option value="week">Last 7 Days</option>
-                    <option value="month">Last 30 Days</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
-                    <User className="h-4 w-4" />
-                    Message Count
-                  </label>
-                  <select
-                    value={filters.messageCount}
-                    onChange={(e) => setFilters(prev => ({ ...prev, messageCount: e.target.value }))}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="all">All</option>
-                    <option value="short">Short (1-5)</option>
-                    <option value="medium">Medium (6-15)</option>
-                    <option value="long">Long (&gt;15)</option>
-                  </select>
-                </div>
-              </Card>
-            )}
-          </div>
-
-          {/* Conversation List Container */}
-          <div className="flex-1 overflow-hidden">
-            <div 
-              className="h-full overflow-y-auto"
-              onScroll={handleScroll}
-            >
-              <ConversationList
-                conversations={filteredConversations}
-                selectedId={selectedConversation?.id}
-                onSelect={setSelectedConversation}
-                onMobileSelect={() => setShowMobileList(false)}
-                chatbotId={chatbotId || undefined}
-              />
-              
-              {isLoadingMore && (
-                <div className="p-4 text-center text-sm text-muted">
-                  Loading more conversations...
-                </div>
-              )}
-              
-              {!hasMore && conversations.length > 0 && (
-                <div className="p-4 text-center text-sm text-muted">
-                  No more conversations to load
-                </div>
-              )}
-            </div>
+    <div className="h-full flex flex-col">
+      {/* Show loading state */}
+      {(loading || isPreferenceLoading) && (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <Spinner className="w-8 h-8 mb-4" />
+            <p className="text-muted-foreground">Loading conversations...</p>
           </div>
         </div>
-      }
-      content={
-        selectedConversation ? (
-          <ConversationDetail 
-            conversation={selectedConversation}
-            onBack={() => setShowMobileList(true)}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-muted">
-            Select a conversation to view details
+      )}
+
+      {/* Show error state */}
+      {error && !loading && !isPreferenceLoading && (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center max-w-md mx-auto p-6">
+            <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
+            <p className="text-destructive font-medium mb-2">Error</p>
+            <p className="text-muted-foreground text-sm">{error}</p>
+            {!isConfigured && (
+              <Button
+                variant="default"
+                className="mt-4"
+                onClick={() => router.push('/settings')}
+              >
+                Configure Chatbot ID
+              </Button>
+            )}
           </div>
-        )
-      }
-      showMobileList={showMobileList}
-      onMobileListChange={setShowMobileList}
-    />
+        </div>
+      )}
+
+      {/* Show content when ready */}
+      {!loading && !isPreferenceLoading && !error && (
+        <ConversationLayout
+          sidebar={
+            <div className="flex h-full flex-col">
+              {/* Search and Filter Header */}
+              <div className="flex-none border-b p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <SearchInput
+                    placeholder="Search conversations..."
+                    onSearch={setSearchQuery}
+                    className="flex-1"
+                  />
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      showFilters 
+                        ? 'bg-primary text-white' 
+                        : 'bg-white text-muted hover:bg-primary/10 hover:text-primary'
+                    }`}
+                  >
+                    <Filter className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Filter Panel */}
+                {showFilters && (
+                  <Card className="p-4 space-y-4 animate-scale">
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
+                        <MessageSquare className="h-4 w-4" />
+                        Source
+                      </label>
+                      <select
+                        value={filters.source}
+                        onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
+                        className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="all">All Sources</option>
+                        <option value="widget">Widget</option>
+                        <option value="whatsapp">WhatsApp</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
+                        <Calendar className="h-4 w-4" />
+                        Date Range
+                      </label>
+                      <select
+                        value={filters.dateRange}
+                        onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                        className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">Last 30 Days</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
+                        <User className="h-4 w-4" />
+                        Message Count
+                      </label>
+                      <select
+                        value={filters.messageCount}
+                        onChange={(e) => setFilters(prev => ({ ...prev, messageCount: e.target.value }))}
+                        className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="all">All</option>
+                        <option value="short">Short (1-5)</option>
+                        <option value="medium">Medium (6-15)</option>
+                        <option value="long">Long (&gt;15)</option>
+                      </select>
+                    </div>
+                  </Card>
+                )}
+              </div>
+
+              {/* Conversation List Container */}
+              <div className="flex-1 overflow-hidden">
+                <div 
+                  className="h-full overflow-y-auto"
+                  onScroll={handleScroll}
+                >
+                  <ConversationList
+                    conversations={filteredConversations}
+                    selectedId={selectedConversation?.id}
+                    onSelect={setSelectedConversation}
+                    onMobileSelect={() => setShowMobileList(false)}
+                    chatbotId={chatbotId || undefined}
+                  />
+                  
+                  {isLoadingMore && (
+                    <div className="p-4 text-center text-sm text-muted">
+                      Loading more conversations...
+                    </div>
+                  )}
+                  
+                  {!hasMore && conversations.length > 0 && (
+                    <div className="p-4 text-center text-sm text-muted">
+                      No more conversations to load
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          }
+          content={
+            selectedConversation ? (
+              <ConversationDetail 
+                conversation={selectedConversation}
+                onBack={() => setShowMobileList(true)}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted">
+                Select a conversation to view details
+              </div>
+            )
+          }
+          showMobileList={showMobileList}
+          onMobileListChange={setShowMobileList}
+        />
+      )}
+    </div>
   )
 } 

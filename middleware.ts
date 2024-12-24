@@ -137,7 +137,7 @@ export default clerkMiddleware(async (auth, request) => {
     signInUrl.searchParams.set('redirect_url', request.url);
     return NextResponse.redirect(signInUrl);
   }
-});
+}); 
 
 export const config = {
   matcher: [

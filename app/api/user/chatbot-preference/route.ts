@@ -6,6 +6,8 @@ import type { Database } from '@/types/supabase';
 // Types
 interface ChatbotPreferenceResponse {
   chatbotId: string | null;
+  needsConfiguration: boolean;
+  message?: string;
   error?: string;
 }
 
@@ -47,29 +49,28 @@ export async function OPTIONS() {
   });
 }
 
+// Helper function for consistent response format
+function createResponse(data: any, status: number = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate'
+    }
+  })
+}
+
 // GET: Fetch user's preferred chatbot ID
 export async function GET(request: Request) {
   try {
     const { userId } = await auth()
 
-    // Always return with these headers
-    const headers = {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-store, no-cache, must-revalidate'
-    }
-
     if (!userId) {
-      return new Response(
-        JSON.stringify({
-          chatbotId: null,
-          needsConfiguration: true,
-          message: 'Please sign in to access this feature'
-        }),
-        { 
-          status: 200,
-          headers
-        }
-      )
+      return createResponse({
+        chatbotId: null,
+        needsConfiguration: true,
+        message: 'Please sign in to access this feature'
+      })
     }
 
     // Fetch preference
@@ -79,151 +80,91 @@ export async function GET(request: Request) {
       .eq('id', userId)
       .single()
 
-    if (error || !data?.preferred_chatbot_id) {
-      return new Response(
-        JSON.stringify({
-          chatbotId: null,
-          needsConfiguration: true,
-          message: 'Please configure your Chatbot ID in settings'
-        }),
-        { 
-          status: 200,
-          headers
-        }
-      )
-    }
-
-    return new Response(
-      JSON.stringify({
-        chatbotId: data.preferred_chatbot_id,
-        needsConfiguration: false
-      }),
-      { 
-        status: 200,
-        headers
-      }
-    )
-  } catch (error) {
-    console.error('Unexpected error:', error)
-    return new Response(
-      JSON.stringify({
+    if (error) {
+      console.error('Database error:', error)
+      return createResponse({
         chatbotId: null,
         needsConfiguration: true,
-        message: 'An error occurred while fetching your configuration'
-      }),
-      { 
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate'
-        }
-      }
-    )
+        error: 'Failed to fetch preference'
+      }, 500)
+    }
+
+    if (!data?.preferred_chatbot_id) {
+      return createResponse({
+        chatbotId: null,
+        needsConfiguration: true,
+        message: 'Please configure your Chatbot ID in settings'
+      })
+    }
+
+    return createResponse({
+      chatbotId: data.preferred_chatbot_id,
+      needsConfiguration: false
+    })
+  } catch (error) {
+    console.error('Unexpected error:', error)
+    return createResponse({
+      chatbotId: null,
+      needsConfiguration: true,
+      error: 'An error occurred while fetching your configuration'
+    }, 500)
   }
 }
 
 // POST: Save user's preferred chatbot ID
 export async function POST(request: Request) {
-  console.log('POST request received');
   try {
-    const { userId } = await auth();
-    console.log('Auth check result:', { userId });
+    const { userId } = await auth()
 
     if (!userId) {
-      console.log('No user ID found');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Unauthorized' }),
-        { 
-          status: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate'
-          }
-        }
-      );
+      return createResponse({ 
+        success: false, 
+        error: 'Unauthorized' 
+      }, 401)
     }
 
     // Validate request body
-    let body: any;
+    let body: { chatbotId?: string }
     try {
-      const text = await request.text();
-      console.log('Request body text:', text);
-      body = JSON.parse(text);
-      console.log('Parsed request body:', body);
+      const text = await request.text()
+      console.log('Request body text:', text)
+      body = JSON.parse(text)
     } catch (err) {
-      console.error('Body parsing error:', err);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid JSON payload' }),
-        { 
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate'
-          }
-        }
-      );
+      console.error('Body parsing error:', err)
+      return createResponse({ 
+        success: false, 
+        error: 'Invalid JSON payload' 
+      }, 400)
     }
 
-    const chatbotId = body?.chatbotId;
-    console.log('Extracted chatbotId:', chatbotId);
-
+    const chatbotId = body?.chatbotId
     if (typeof chatbotId !== 'string' || !chatbotId.trim()) {
-      console.log('Invalid chatbot ID format');
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid chatbot ID' }),
-        { 
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate'
-          }
-        }
-      );
+      return createResponse({ 
+        success: false, 
+        error: 'Invalid chatbot ID' 
+      }, 400)
     }
 
     // Update preference
-    console.log('Updating preference for user:', userId);
     const { error } = await supabase
       .from('users')
       .update({ preferred_chatbot_id: chatbotId.trim() })
-      .eq('id', userId);
+      .eq('id', userId)
 
     if (error) {
-      console.error('Database error:', error);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to save preference' }),
-        { 
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate'
-          }
-        }
-      );
+      console.error('Database error:', error)
+      return createResponse({ 
+        success: false, 
+        error: 'Failed to save preference' 
+      }, 500)
     }
 
-    console.log('Preference updated successfully');
-    return new Response(
-      JSON.stringify({ success: true }),
-      { 
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate'
-        }
-      }
-    );
+    return createResponse({ success: true })
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Internal server error' }),
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store, no-cache, must-revalidate'
-        }
-      }
-    );
+    console.error('Unexpected error:', error)
+    return createResponse({ 
+      success: false, 
+      error: 'Internal server error' 
+    }, 500)
   }
 }
