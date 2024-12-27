@@ -5,6 +5,7 @@ import { useAuth } from '@clerk/nextjs'
 import { ChatbotRequired } from '@/components/ui/chatbot-required'
 import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
 import { LoadingPage } from '@/components/ui/loading'
+import { PageContainer } from '@/components/new-version/page-container'
 
 export default function PlaygroundPage() {
   const { chatbotId, isConfigured, isLoading: isPreferenceLoading, isInitialized } = useChatbotPreference()
@@ -25,14 +26,17 @@ export default function PlaygroundPage() {
   }
 
   return (
-    <div className="container py-8">
+    <PageContainer
+      title="Playground"
+      description="Test and interact with your chatbot"
+    >
       <iframe
         src={`https://www.chatbase.co/chatbot-iframe/${chatbotId}`}
         width="100%"
-        height="700"
+        height="100%"
         frameBorder="0"
         className="rounded-lg shadow-lg"
       />
-    </div>
+    </PageContainer>
   )
 } 

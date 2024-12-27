@@ -7,15 +7,16 @@ import { PerformanceOverview } from '@/components/analytics/performance-overview
 import { MessagesChart } from '@/components/analytics/messages-chart'
 import { GrowthAndRetention } from '@/components/analytics/growth-and-retention'
 import { CountryAnalytics } from '@/components/analytics/country-analytics'
-import { useSettings } from '@/lib/store/settings'
-import { ChatbotRequired } from '@/components/ui/chatbot-required'
+import { ContentAnalysis } from '@/components/analytics/content-analysis'
+import { DistributionCard } from '@/components/analytics/distribution-card'
+import { PageContainer } from '@/components/new-version/page-container'
+import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { addDays } from 'date-fns'
 import type { DateRange } from 'react-day-picker'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
-import { LineChart } from '@/components/analytics/line-chart'
-import { ContentAnalysis } from '@/components/analytics/content-analysis'
-import { DistributionCard } from '@/components/analytics/distribution-card'
+import { ChatbotRequired } from '@/components/ui/chatbot-required'
+import { useSettings } from '@/lib/store/settings'
 
 export default function AnalyticsPage() {
   const { chatbotId, isConfigured } = useSettings()
@@ -82,15 +83,16 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+    <PageContainer
+      title="Analytics Dashboard"
+      description="Track and analyze your chatbot's performance"
+      headerContent={
         <DateRangePicker
           value={dateRange}
           onChange={handleDateRangeChange}
         />
-      </div>
-
+      }
+    >
       {error ? (
         <div className="rounded-lg bg-red-50 p-4 text-red-500">
           {error}
@@ -197,6 +199,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   )
 } 

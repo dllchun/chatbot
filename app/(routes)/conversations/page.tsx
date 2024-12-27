@@ -15,6 +15,7 @@ import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
+import { PageContainer } from '@/components/new-version/page-container'
 
 export default function ConversationsPage() {
   const { chatbotId, isConfigured, isLoading: isPreferenceLoading, isInitialized } = useChatbotPreference()
@@ -246,143 +247,152 @@ export default function ConversationsPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-2rem)] flex flex-col md:flex-row">
-      {/* Conversation List Section */}
-      <div className={cn(
-        "w-full md:w-80 lg:w-96 border-r border-border bg-background flex-shrink-0",
-        "transition-all duration-200 ease-in-out",
-        !showMobileList && "hidden md:block",
-        showMobileList && "absolute md:relative inset-0 z-20 md:z-0 bg-background"
-      )}>
-        <div className="h-full flex flex-col">
-          {/* Search and Filter Header */}
-          <div className="flex-none border-b p-4 space-y-4 bg-background">
-            <div className="flex items-center gap-2">
+    <PageContainer
+      title="Conversations"
+      description="View and manage your chatbot conversations"
+      headerContent={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFilters(!showFilters)}
+          className={cn(
+            "transition-colors",
+            showFilters && "bg-primary/10 text-primary border-primary"
+          )}
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Filters
+        </Button>
+      }
+      fullWidth
+    >
+      <div className="h-full flex flex-col md:flex-row">
+        {/* Conversation List Section */}
+        <div className={cn(
+          "w-full md:w-80 lg:w-96 border-r border-border bg-background flex-shrink-0",
+          "transition-all duration-200 ease-in-out",
+          !showMobileList && "hidden md:block",
+          showMobileList && "absolute md:relative inset-0 z-20 md:z-0 bg-background"
+        )}>
+          <div className="h-full flex flex-col">
+            {/* Search Header */}
+            <div className="flex-none border-b p-4 bg-background">
               <SearchInput
                 placeholder="Search conversations..."
                 onSearch={setSearchQuery}
-                className="flex-1"
+                className="w-full"
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowFilters(!showFilters)}
-                className={cn(
-                  "transition-colors",
-                  showFilters && "bg-primary/10 text-primary"
-                )}
-              >
-                <Filter className="h-4 w-4" />
-              </Button>
             </div>
 
             {/* Filter Panel */}
             {showFilters && (
-              <Card className="p-4 space-y-4 animate-in fade-in-50 slide-in-from-top-5">
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
-                    <MessageSquare className="h-4 w-4" />
-                    Source
-                  </label>
-                  <select
-                    value={filters.source}
-                    onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="all">All Sources</option>
-                    <option value="widget">Widget</option>
-                    <option value="whatsapp">WhatsApp</option>
-                  </select>
-                </div>
+              <div className="flex-none border-b p-4 bg-background">
+                <Card className="p-4 space-y-4 animate-in fade-in-50 slide-in-from-top-5">
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Source
+                    </label>
+                    <select
+                      value={filters.source}
+                      onChange={(e) => setFilters(prev => ({ ...prev, source: e.target.value }))}
+                      className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="all">All Sources</option>
+                      <option value="widget">Widget</option>
+                      <option value="whatsapp">WhatsApp</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
-                    <Calendar className="h-4 w-4" />
-                    Date Range
-                  </label>
-                  <select
-                    value={filters.dateRange}
-                    onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="today">Today</option>
-                    <option value="week">Last 7 Days</option>
-                    <option value="month">Last 30 Days</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
+                      <Calendar className="h-4 w-4" />
+                      Date Range
+                    </label>
+                    <select
+                      value={filters.dateRange}
+                      onChange={(e) => setFilters(prev => ({ ...prev, dateRange: e.target.value }))}
+                      className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="all">All Time</option>
+                      <option value="today">Today</option>
+                      <option value="week">Last 7 Days</option>
+                      <option value="month">Last 30 Days</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
-                    <User className="h-4 w-4" />
-                    Message Count
-                  </label>
-                  <select
-                    value={filters.messageCount}
-                    onChange={(e) => setFilters(prev => ({ ...prev, messageCount: e.target.value }))}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
-                  >
-                    <option value="all">All</option>
-                    <option value="short">Short (1-5)</option>
-                    <option value="medium">Medium (6-15)</option>
-                    <option value="long">Long (&gt;15)</option>
-                  </select>
-                </div>
-              </Card>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-muted mb-2">
+                      <User className="h-4 w-4" />
+                      Message Count
+                    </label>
+                    <select
+                      value={filters.messageCount}
+                      onChange={(e) => setFilters(prev => ({ ...prev, messageCount: e.target.value }))}
+                      className="w-full rounded-lg border border-input bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="all">All</option>
+                      <option value="short">Short (1-5)</option>
+                      <option value="medium">Medium (6-15)</option>
+                      <option value="long">Long (&gt;15)</option>
+                    </select>
+                  </div>
+                </Card>
+              </div>
             )}
-          </div>
 
-          {/* Conversation List */}
-          <div className="flex-1 overflow-hidden">
-            <div 
-              className="h-full overflow-y-auto"
-              onScroll={handleScroll}
-            >
-              <ConversationList
-                conversations={filteredConversations}
-                selectedId={selectedConversation?.id}
-                onSelect={(conv) => {
-                  setSelectedConversation(conv)
-                  setShowMobileList(false)
-                }}
-                chatbotId={chatbotId || undefined}
-              />
-              
-              {isLoadingMore && (
-                <div className="p-4 text-center">
-                  <Spinner className="h-6 w-6 mx-auto" />
-                </div>
-              )}
-              
-              {!hasMore && conversations.length > 0 && (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  No more conversations to load
-                </div>
-              )}
+            {/* Conversation List */}
+            <div className="flex-1 overflow-hidden">
+              <div 
+                className="h-full overflow-y-auto"
+                onScroll={handleScroll}
+              >
+                <ConversationList
+                  conversations={filteredConversations}
+                  selectedId={selectedConversation?.id}
+                  onSelect={(conv) => {
+                    setSelectedConversation(conv)
+                    setShowMobileList(false)
+                  }}
+                  chatbotId={chatbotId || undefined}
+                />
+                
+                {isLoadingMore && (
+                  <div className="p-4 text-center">
+                    <Spinner className="h-6 w-6 mx-auto" />
+                  </div>
+                )}
+                
+                {!hasMore && conversations.length > 0 && (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No more conversations to load
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Conversation Detail Section */}
-      <div className={cn(
-        "flex-1 h-full bg-background",
-        showMobileList && "hidden md:block"
-      )}>
-        {selectedConversation ? (
-          <ConversationDetail 
-            conversation={selectedConversation}
-            onBack={() => setShowMobileList(true)}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>Select a conversation to view details</p>
+        {/* Conversation Detail Section */}
+        <div className={cn(
+          "flex-1 h-full bg-background",
+          showMobileList && "hidden md:block"
+        )}>
+          {selectedConversation ? (
+            <ConversationDetail 
+              conversation={selectedConversation}
+              onBack={() => setShowMobileList(true)}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              <div className="text-center">
+                <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Select a conversation to view details</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </PageContainer>
   )
 } 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { useAuth, useUser } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { Monitor, Moon, Sun, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
+import { PageContainer } from '@/components/new-version/page-container'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -21,7 +22,6 @@ export default function SettingsPage() {
     setChatbotId 
   } = useChatbotPreference()
   const { getToken, isLoaded: isAuthLoaded } = useAuth()
-  const { isLoaded: isUserLoaded } = useUser()
   const [mounted, setMounted] = useState(false)
   const [newChatbotId, setNewChatbotId] = useState(chatbotId || '')
   const [loading, setLoading] = useState(false)
@@ -37,7 +37,7 @@ export default function SettingsPage() {
     }
   }, [chatbotId])
 
-  if (!mounted || !isAuthLoaded || !isUserLoaded) {
+  if (!mounted || !isAuthLoaded) {
     return null
   }
 
@@ -54,7 +54,6 @@ export default function SettingsPage() {
         throw new Error('No auth token available')
       }
 
-      console.log('Making save request with token');
       const response = await fetch('/api/user/chatbot-preference', {
         method: 'POST',
         headers: {
@@ -65,10 +64,8 @@ export default function SettingsPage() {
         body: JSON.stringify({ chatbotId: newChatbotId })
       })
 
-      console.log('Save response status:', response.status);
       if (!response.ok) {
         const text = await response.text()
-        console.error('Save error response:', text)
         let errorMessage = 'Failed to save preference'
         try {
           const errorData = JSON.parse(text)
@@ -79,7 +76,6 @@ export default function SettingsPage() {
         throw new Error(errorMessage)
       }
 
-      // Update the local store after successful save
       setChatbotId(newChatbotId)
       toast.success('Chatbot ID updated successfully')
     } catch (error) {
@@ -91,11 +87,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-8 space-y-8">
-      <h1 className="text-3xl font-bold">Settings</h1>
-      
+    <PageContainer
+      title="Settings"
+      description="Configure your application preferences"
+    >
       {!isConfigured && (
-        <Alert className="border-orange-500 text-orange-500">
+        <Alert className="mb-6 border-orange-500 text-orange-500">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Action Required</AlertTitle>
           <AlertDescription>
@@ -105,9 +102,9 @@ export default function SettingsPage() {
         </Alert>
       )}
       
-      {/* Theme Settings */}
-      <Card className="p-6 space-y-6">
-        <div>
+      <div className="space-y-6">
+        {/* Theme Settings */}
+        <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Theme</h2>
           <div className="flex flex-wrap gap-4">
             <Button
@@ -135,9 +132,10 @@ export default function SettingsPage() {
               System
             </Button>
           </div>
-        </div>
+        </Card>
 
-        <div className="border-t pt-6">
+        {/* Chatbot Configuration */}
+        <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Chatbot Configuration</h2>
           <div className="space-y-4 max-w-md">
             <div className="space-y-2">
@@ -188,9 +186,8 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-        </div>
-      </Card>
-
-    </div>
+        </Card>
+      </div>
+    </PageContainer>
   )
 } 
