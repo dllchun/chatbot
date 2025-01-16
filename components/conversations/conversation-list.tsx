@@ -5,8 +5,7 @@ import type { Conversation } from '@/types/api'
 import { Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
-import { useAuth } from '@clerk/nextjs'
-import { toast } from 'sonner'
+import { ExportDialog } from './export-dialog'
 
 interface ConversationListProps {
   conversations: Conversation[]
@@ -23,59 +22,7 @@ export function ConversationList({
   onMobileSelect,
   chatbotId
 }: ConversationListProps) {
-  const { getToken } = useAuth()
-  const [isExporting, setIsExporting] = useState(false)
-
-  const handleExport = async () => {
-    try {
-      console.log('Export attempt with chatbotId:', chatbotId)
-      
-      if (!chatbotId) {
-        throw new Error('Chatbot ID is required')
-      }
-
-      setIsExporting(true)
-      toast.info('Starting export...')
-      
-      const token = await getToken()
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      const response = await fetch(`/api/conversations/export?chatbotId=${chatbotId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Export failed')
-      }
-
-      const contentType = response.headers.get('Content-Type')
-      if (!contentType || !contentType.includes('text/csv')) {
-        throw new Error('Invalid response format')
-      }
-
-      toast.success('Export completed')
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `conversations-${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    } catch (error) {
-      console.error('Export failed:', error)
-      toast.error('Export failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
-    } finally {
-      setIsExporting(false)
-    }
-  }
+  const [showExportDialog, setShowExportDialog] = useState(false)
 
   if (conversations.length === 0) {
     return (
@@ -94,20 +41,11 @@ export function ConversationList({
         <Button 
           variant="outline" 
           className="w-full" 
-          onClick={handleExport}
-          disabled={isExporting || !chatbotId}
+          onClick={() => setShowExportDialog(true)}
+          disabled={!chatbotId}
         >
-          {isExporting ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Exporting...
-            </>
-          ) : (
-            <>
-              <Download className="w-4 h-4 mr-2" />
-              {!chatbotId ? 'Configure Chatbot First' : 'Export Conversations'}
-            </>
-          )}
+          <Download className="w-4 h-4 mr-2" />
+          {!chatbotId ? 'Configure Chatbot First' : 'Export Conversations'}
         </Button>
       </div>
       <div className="divide-y divide-slate-100">
@@ -127,7 +65,7 @@ export function ConversationList({
             >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-900">
-                  {conversation.customer || 'Anonymous'}
+                  {conversation.source}
                 </span>
                 <span className="text-xs text-slate-500">
                   {formatDistanceToNow(createdAt, { addSuffix: true })}
@@ -142,6 +80,12 @@ export function ConversationList({
           )
         })}
       </div>
+
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        chatbotId={chatbotId || ''}
+      />
     </>
   )
 } 
