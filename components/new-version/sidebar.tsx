@@ -17,9 +17,17 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  Globe
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTheme } from 'next-themes'
+import { useTranslation } from 'react-i18next'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface SidebarProps {
   collapsed: boolean
@@ -35,22 +43,22 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
-    title: 'Playground',
+    title: 'components.sidebar.menu.playground',
     icon: LayoutDashboard,
     href: '/playground',
   },
   {
-    title: 'Conversations',
+    title: 'components.sidebar.menu.conversations',
     icon: MessagesSquare,
     href: '/conversations',
   },
   {
-    title: 'Analytics',
+    title: 'components.sidebar.menu.analytics',
     icon: BarChart,
     href: '/analytics',
   },
   {
-    title: 'Settings',
+    title: 'components.sidebar.menu.settings',
     icon: Settings,
     href: '/settings',
   },
@@ -58,13 +66,13 @@ const menuItems: MenuItem[] = [
 
 const bottomMenuItems: MenuItem[] = [
   {
-    title: 'Support',
+    title: 'components.sidebar.support.title',
     icon: MessageCircle,
     href: 'https://i2.ai',
     external: true,
   },
   {
-    title: 'FAQ',
+    title: 'components.sidebar.support.faq',
     icon: HelpCircle,
     href: 'https://docs.i2.ai',
     external: true,
@@ -76,6 +84,12 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
   const { theme, setTheme } = useTheme()
   const { signOut } = useClerk()
   const { user } = useUser()
+  const { t, i18n } = useTranslation()
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng)
+    localStorage.setItem('i18nextLng', lng)
+  }
 
   return (
     <div className={cn(
@@ -104,7 +118,7 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
       </div>
 
       {/* Main Menu */}
-      <nav className="flex-1 px-4 overflow-y-auto">
+      <div className="flex-1 px-3">
         <div className="space-y-1">
           {menuItems.map((item) => (
             item.external ? (
@@ -119,7 +133,7 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
                 )}
               >
                 <item.icon size={20} className="shrink-0" />
-                {!collapsed && <span className="ml-3">{item.title}</span>}
+                {!collapsed && <span className="ml-3">{t(item.title)}</span>}
               </a>
             ) : (
               <Link
@@ -133,17 +147,18 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
                 )}
               >
                 <item.icon size={20} className="shrink-0" />
-                {!collapsed && <span className="ml-3">{item.title}</span>}
+                {!collapsed && <span className="ml-3">{t(item.title)}</span>}
               </Link>
             )
           ))}
         </div>
-      </nav>
+      </div>
 
-      {/* Bottom Menu */}
-      <div className="px-4 space-y-2 mb-6">
-        {bottomMenuItems.map((item) => (
-          item.external ? (
+      {/* Bottom Section */}
+      <div className="mt-auto px-3 pb-6">
+        {/* Support Links */}
+        <div className="mb-4">
+          {bottomMenuItems.map((item) => (
             <a
               key={item.href}
               href={item.href}
@@ -155,71 +170,123 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
               )}
             >
               <item.icon size={20} className="shrink-0" />
-              {!collapsed && <span className="ml-3">{item.title}</span>}
+              {!collapsed && <span className="ml-3">{t(item.title)}</span>}
             </a>
-          ) : (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center px-2 py-2 rounded-lg text-sm font-medium transition-colors',
-                pathname === item.href
-                  ? 'bg-[#6B4EFF]/10 text-[#6B4EFF]'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
-              )}
-            >
-              <item.icon size={20} className="shrink-0" />
-              {!collapsed && <span className="ml-3">{item.title}</span>}
-            </Link>
-          )
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* User Profile */}
-      {!collapsed && (
-        <div className="px-4 pt-4 border-t border-white/10">
-          <div className="px-2">
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback>{user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}</AvatarFallback>
+        {/* Divider */}
+        <div className="h-px bg-white/10 my-4" />
+
+        {/* Settings Group */}
+        <div className="space-y-2">
+          {/* Language Selector */}
+          {!collapsed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2"
+                >
+                  <Globe className="h-4 w-4" />
+                  <span>{i18n.language === 'zh' ? '繁體中文' : 'English'}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="right"
+                align="start"
+                className="bg-[#2D2839] border-zinc-700"
+              >
+                <DropdownMenuItem 
+                  onClick={() => changeLanguage('en')}
+                  className="text-white hover:bg-white/10 focus:bg-white/10"
+                >
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => changeLanguage('zh')}
+                  className="text-white hover:bg-white/10 focus:bg-white/10"
+                >
+                  繁體中文
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full flex justify-center"
+              onClick={() => changeLanguage(i18n.language === 'en' ? 'zh' : 'en')}
+            >
+              <Globe className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            className={cn(
+              "w-full justify-start gap-2",
+              collapsed && "justify-center"
+            )}
+          >
+            {theme === 'light' ? (
+              <>
+                <Moon className="h-4 w-4" />
+                {!collapsed && <span>{t('common.theme.dark')}</span>}
+              </>
+            ) : (
+              <>
+                <Sun className="h-4 w-4" />
+                {!collapsed && <span>{t('common.theme.light')}</span>}
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-white/10 my-4" />
+
+        {/* User Section */}
+        <div className="space-y-3">
+          {user && !collapsed && (
+            <div className="flex items-center gap-2 px-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.imageUrl} />
+                <AvatarFallback>
+                  {user.firstName?.charAt(0)}
+                  {user.lastName?.charAt(0)}
+                </AvatarFallback>
               </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-white truncate">
-                    {user?.firstName} {user?.lastName}
-                  </p>
-                </div>
-                <p className="text-xs text-zinc-400 truncate">{user?.emailAddresses[0].emailAddress}</p>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-medium truncate text-white">
+                  {user.fullName}
+                </p>
+                <p className="text-xs text-zinc-400 truncate">
+                  {user.primaryEmailAddress?.emailAddress}
+                </p>
               </div>
             </div>
+          )}
 
-            <div className="flex items-center gap-2 mb-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex-1 text-zinc-400 hover:text-white hover:bg-white/5"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              >
-                {theme === 'dark' ? (
-                  <Sun className="h-4 w-4 mr-2" />
-                ) : (
-                  <Moon className="h-4 w-4 mr-2" />
-                )}
-                {theme === 'dark' ? 'Light' : 'Dark'}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-zinc-400 hover:text-white hover:bg-white/5"
-                onClick={() => signOut()}
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          {/* Logout Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => signOut()}
+            className={cn(
+              "w-full justify-start gap-2 text-red-400 hover:text-red-300 hover:bg-red-400/10",
+              collapsed && "justify-center"
+            )}
+          >
+            <LogOut className="h-4 w-4" />
+            {!collapsed && <span>{t('common.actions.signOut')}</span>}
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   )
 } 

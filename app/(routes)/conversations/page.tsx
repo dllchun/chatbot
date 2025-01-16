@@ -16,8 +16,10 @@ import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { PageContainer } from '@/components/new-version/page-container'
+import { useTranslation } from 'react-i18next'
 
 export default function ConversationsPage() {
+  const { t } = useTranslation()
   const { chatbotId, isConfigured, isLoading: isPreferenceLoading, isInitialized } = useChatbotPreference()
   const { getToken } = useAuth()
   const router = useRouter()
@@ -248,8 +250,8 @@ export default function ConversationsPage() {
 
   return (
     <PageContainer
-      title="Conversations"
-      description="View and manage your chatbot conversations"
+      title={t('components.sidebar.menu.conversations')}
+      description={t('pages.conversations.description')}
       headerContent={
         <Button
           variant="outline"
@@ -278,7 +280,7 @@ export default function ConversationsPage() {
             {/* Search Header */}
             <div className="flex-none border-b p-4 bg-background">
               <SearchInput
-                placeholder="Search conversations..."
+                placeholder={t("pages.conversations.searchPlaceholder")}
                 onSearch={setSearchQuery}
                 className="w-full"
               />
@@ -387,7 +389,7 @@ export default function ConversationsPage() {
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>Select a conversation to view details</p>
+                <p>{t("common.selectConversation")}</p>
               </div>
             </div>
           )}

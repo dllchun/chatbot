@@ -2,6 +2,7 @@
 
 import { ClerkProvider, useAuth } from '@clerk/nextjs'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { LanguageProvider } from '@/components/providers/language-provider'
 import { PageTransition } from '@/components/layout/page-transition'
 import { Suspense, useState, useEffect } from 'react'
 import { LoadingPage } from '@/components/ui/loading'
@@ -93,14 +94,16 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body className={inter.className}>
           <ThemeProvider>
-            <Suspense fallback={<LoadingPage />}>
-              <PageTransition>
-                <AuthenticatedLayout>
-                  {children}
-                </AuthenticatedLayout>
-              </PageTransition>
-            </Suspense>
-            <Toaster position="bottom-right" />
+            <LanguageProvider>
+              <Suspense fallback={<LoadingPage />}>
+                <PageTransition>
+                  <AuthenticatedLayout>
+                    {children}
+                  </AuthenticatedLayout>
+                </PageTransition>
+              </Suspense>
+              <Toaster position="bottom-right" />
+            </LanguageProvider>
           </ThemeProvider>
         </body>
       </html>

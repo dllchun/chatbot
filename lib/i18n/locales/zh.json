@@ -1,0 +1,127 @@
+{
+  "common": {
+    "noConversations": "找不到對話",
+    "tryAdjusting": "請嘗試調整過濾條件或搜尋關鍵字",
+    "exportConversations": "匯出對話",
+    "configureChatbot": "請先設定聊天機器人",
+    "selectConversation": "請選擇對話以查看詳情",
+    "customer": "客戶",
+    "source": "來源",
+    "date": "日期",
+    "messages": "訊息",
+    "anonymous": "匿名",
+    "website": "網站",
+    "whatsapp": "WhatsApp",
+    "whatsappNA": "WhatsApp: 未提供",
+    "unknown": "未知",
+    "noMessages": "無訊息",
+    "backToConversations": "返回對話列表",
+    "language": "語言",
+    "theme": {
+      "light": "淺色模式",
+      "dark": "深色模式",
+      "system": "系統模式"
+    },
+    "actions": {
+      "signOut": "登出",
+      "save": "儲存",
+      "saving": "儲存中"
+    }
+  },
+  "export": {
+    "csv": {
+      "label": "CSV",
+      "description": "簡單的文字格式，適用於所有試算表應用程式"
+    },
+    "excel": {
+      "label": "Excel",
+      "description": "格式化的 Excel 工作表，包含適當的欄位"
+    },
+    "json": {
+      "label": "JSON",
+      "description": "開發人員使用的原始資料格式"
+    }
+  },
+  "language": {
+    "en": "English",
+    "zh": "繁體中文",
+    "select": "選擇語言"
+  },
+  "components": {
+    "sidebar": {
+      "menu": {
+        "playground": "遊樂場",
+        "conversations": "對話",
+        "analytics": "分析",
+        "settings": "設定"
+      },
+      "support": {
+        "title": "支援",
+        "faq": "常見問題"
+      }
+    }
+  },
+  "pages": {
+    "conversations": {
+      "title": "對話",
+      "noResults": "找不到對話",
+      "tryAdjusting": "請嘗試調整過濾條件或搜尋內容",
+      "export": {
+        "button": "匯出對話",
+        "formats": {
+          "csv": {
+            "label": "CSV",
+            "description": "簡單的文字格式，適用於所有試算表應用程式"
+          },
+          "excel": {
+            "label": "Excel",
+            "description": "格式化的 Excel 工作表，包含適當的欄位"
+          },
+          "json": {
+            "label": "JSON",
+            "description": "開發人員使用的原始資料格式"
+          }
+        }
+      },
+      "description": "查看並管理您的聊天機器人對話",
+      "searchPlaceholder": "搜尋對話..."
+    },
+    "playground": {
+      "title": "遊樂場",
+      "description": "即時測試您的聊天機器人",
+      "input": {
+        "placeholder": "在此輸入訊息...",
+        "send": "發送"
+      },
+      "settings": {
+        "title": "設定",
+        "model": "模型",
+        "temperature": "溫度",
+        "maxTokens": "最大字符數"
+      },
+      "messages": {
+        "empty": "開始對話以測試您的聊天機器人",
+        "thinking": "機器人思考中...",
+        "error": "發送訊息時發生錯誤"
+      }
+    },
+    "settings": {
+      "sections": {
+        "general": "一般",
+        "translations": "翻譯",
+        "chatbotConfiguration": {
+          "label": "聊天機器人配置",
+          "chatbotid": {
+            "description": "此 ID 將用於所有 API 呼叫和 iframe 整合。"
+          }
+        }
+      },
+      "description": "配置您的應用程式首選項",
+      "section": {
+        "theme": {
+          "title": "主題"
+        }
+      }
+    }
+  }
+}

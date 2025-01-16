@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { FileText, Table, FileJson, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuth } from '@clerk/nextjs'
+import { useTranslation } from 'react-i18next'
+import '@/lib/i18n'
 
 interface ExportDialogProps {
   open: boolean
@@ -22,30 +24,31 @@ interface ExportOption {
   description: string
 }
 
-const exportOptions: ExportOption[] = [
-  {
-    id: 'csv',
-    label: 'CSV',
-    icon: FileText,
-    description: 'Simple text format, works with any spreadsheet app'
-  },
-  {
-    id: 'xlsx',
-    label: 'Excel',
-    icon: Table,
-    description: 'Formatted Excel workbook with proper columns'
-  },
-  {
-    id: 'json',
-    label: 'JSON',
-    icon: FileJson,
-    description: 'Raw data format for developers'
-  }
-]
-
 export function ExportDialog({ open, onOpenChange, chatbotId }: ExportDialogProps) {
+  const { t } = useTranslation()
   const { getToken } = useAuth()
   const [isExporting, setIsExporting] = useState<ExportFormat | null>(null)
+
+  const exportOptions: ExportOption[] = [
+    {
+      id: 'csv',
+      label: t('export.csv.label'),
+      icon: FileText,
+      description: t('export.csv.description')
+    },
+    {
+      id: 'xlsx',
+      label: t('export.excel.label'),
+      icon: Table,
+      description: t('export.excel.description')
+    },
+    {
+      id: 'json',
+      label: t('export.json.label'),
+      icon: FileJson,
+      description: t('export.json.description')
+    }
+  ]
 
   const handleExport = async (format: ExportFormat) => {
     try {
@@ -93,7 +96,7 @@ export function ExportDialog({ open, onOpenChange, chatbotId }: ExportDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader className="pb-4">
-          <DialogTitle className="text-xl">Export Conversations</DialogTitle>
+          <DialogTitle className="text-xl">{t('common.exportConversations')}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           {exportOptions.map((option) => (

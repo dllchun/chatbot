@@ -1,10 +1,11 @@
 'use client'
 
 import * as React from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { MessageSquare, User, Calendar, Link as LinkIcon, ChevronLeft } from "lucide-react"
 import type { Conversation } from "@/types/api"
 import ReactMarkdown from 'react-markdown'
+import { cn } from "@/lib/utils"
 
 interface ConversationDetailProps {
   conversation: Conversation
@@ -12,25 +13,34 @@ interface ConversationDetailProps {
 }
 
 const messageVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 }
 }
 
 export function ConversationDetail({ conversation, onBack }: ConversationDetailProps) {
   const messagesEndRef = React.useRef<HTMLDivElement>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
   React.useEffect(() => {
-    scrollToBottom()
-  }, [conversation.id]) // Scroll when conversation changes
+    // Reset loading state when conversation changes
+    setIsLoading(true)
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+      scrollToBottom()
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [conversation.id])
 
   return (
     <div className="grid h-full grid-rows-[auto_1fr]">
       {/* Header Section */}
-      <div className="border-b border-slate-200 bg-slate-50/80">
+      <div className="border-b border-slate-200 bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10">
         {/* Back Button */}
         <div className="p-4 md:hidden">
           <button
@@ -94,33 +104,55 @@ export function ConversationDetail({ conversation, onBack }: ConversationDetailP
 
       {/* Messages Section */}
       <div className="overflow-y-auto p-4">
-        <div className="space-y-4">
-          {conversation.messages.map((message, index) => (
-            <motion.div
-              key={index}
-              variants={messageVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: index * 0.1 }}
-              className={`flex ${
-                message.role === 'assistant' ? 'justify-start' : 'justify-end'
-              }`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  message.role === 'assistant'
-                    ? 'bg-slate-100 text-slate-900'
-                    : 'bg-emerald-500 text-white'
-                }`}
-              >
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown>{message.content}</ReactMarkdown>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className={cn(
+                  "max-w-[80%] rounded-lg px-4 py-2",
+                  i % 2 === 0 ? "bg-slate-100 ml-0" : "bg-emerald-100 ml-auto"
+                )}>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-slate-200 rounded"></div>
+                    <div className="h-3 bg-slate-200 rounded w-5/6"></div>
+                  </div>
                 </div>
               </div>
-            </motion.div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+            ))}
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <div className="space-y-4">
+              {conversation.messages.map((message, index) => (
+                <motion.div
+                  key={index}
+                  variants={messageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                  className={`flex ${
+                    message.role === 'assistant' ? 'justify-start' : 'justify-end'
+                  }`}
+                >
+                  <div
+                    className={cn(
+                      "max-w-[80%] rounded-lg px-4 py-2",
+                      message.role === 'assistant'
+                        ? 'bg-slate-100 text-slate-900'
+                        : 'bg-emerald-500 text-white'
+                    )}
+                  >
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </AnimatePresence>
+        )}
       </div>
     </div>
   )

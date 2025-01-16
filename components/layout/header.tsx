@@ -4,7 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton, useUser } from '@clerk/nextjs'
-import { Menu, X, Bot, MessageSquare, BarChart2, Settings, Sparkles } from 'lucide-react'
+import { Menu, X, Bot, MessageSquare, BarChart2, Settings, Sparkles, Globe } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 // Types
 type NavItem = {
@@ -40,6 +47,13 @@ export function Header() {
   const pathname = usePathname()
   const { user } = useUser()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { t, i18n } = useTranslation()
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng)
+    // Save language preference to localStorage
+    localStorage.setItem('i18nextLng', lng)
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-sm">
@@ -80,6 +94,24 @@ export function Header() {
 
           {/* User Section */}
           <div className="flex items-center space-x-4">
+            {/* Language Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center space-x-2 rounded-full bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                  <Globe className="h-4 w-4" />
+                  <span>{i18n.language === 'zh-HK' ? '繁體中文' : 'English'}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => changeLanguage('en')}>
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage('zh-HK')}>
+                  繁體中文
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <div className="hidden items-center space-x-4 rounded-full bg-slate-50 px-4 py-2 sm:flex">
               {user && (
                 <div className="text-right">
@@ -132,6 +164,33 @@ export function Header() {
                   {item.label}
                 </Link>
               ))}
+              {/* Mobile Language Selector */}
+              <div className="border-t border-slate-200 pt-4">
+                <div className="flex items-center justify-between px-3">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    <span className="text-sm font-medium">{t('common.language')}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => changeLanguage('en')}
+                      className={`px-3 py-1 text-sm rounded-md ${
+                        i18n.language === 'en' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-500'
+                      }`}
+                    >
+                      English
+                    </button>
+                    <button
+                      onClick={() => changeLanguage('zh-HK')}
+                      className={`px-3 py-1 text-sm rounded-md ${
+                        i18n.language === 'zh-HK' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-500'
+                      }`}
+                    >
+                      繁體中文
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div className="border-t border-slate-200 pt-4">
                 <div className="flex items-center space-x-3 px-3">
                   <UserButton

@@ -6,8 +6,10 @@ import { ChatbotRequired } from '@/components/ui/chatbot-required'
 import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
 import { LoadingPage } from '@/components/ui/loading'
 import { PageContainer } from '@/components/new-version/page-container'
+import { useTranslation } from 'react-i18next'
 
 export default function PlaygroundPage() {
+  const { t } = useTranslation()
   const { chatbotId, isConfigured, isLoading: isPreferenceLoading, isInitialized } = useChatbotPreference()
   const { isLoaded: isAuthLoaded } = useAuth()
   const [mounted, setMounted] = useState(false)
@@ -27,8 +29,8 @@ export default function PlaygroundPage() {
 
   return (
     <PageContainer
-      title="Playground"
-      description="Test and interact with your chatbot"
+      title={t('components.sidebar.menu.playground')}
+      description={t('pages.playground.description')}
     >
       <iframe
         src={`https://www.chatbase.co/chatbot-iframe/${chatbotId}`}

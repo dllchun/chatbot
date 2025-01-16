@@ -1,0 +1,124 @@
+{
+  "common": {
+    "language": "Language",
+    "theme": {
+      "light": "Light Mode",
+      "dark": "Dark Mode",
+      "system": "System"
+    },
+    "actions": {
+      "signOut": "Sign Out",
+      "save": "Save",
+      "saving": "Saving"
+    },
+    "anonymous": "Anonymous",
+    "backToConversations": "Back To Conversations",
+    "configureChatbot": "Configure Chatbot",
+    "customer": "Customer",
+    "date": "Date",
+    "exportConversations": "Export Conversations",
+    "messages": "Messages",
+    "noConversations": "No Conversations",
+    "noMessages": "No Messages",
+    "selectConversation": "Select a conversation to view details",
+    "source": "Source",
+    "tryAdjusting": "Try Adjusting",
+    "unknown": "Unknown",
+    "website": "Website",
+    "whatsapp": "Whatsapp",
+    "whatsappNA": "Whatsapp: NA"
+  },
+  "components": {
+    "sidebar": {
+      "menu": {
+        "playground": "Playground",
+        "conversations": "Conversations",
+        "analytics": "Analytics",
+        "settings": "Settings"
+      },
+      "support": {
+        "title": "Support",
+        "faq": "FAQ"
+      }
+    }
+  },
+  "pages": {
+    "conversations": {
+      "title": "Conversations",
+      "noResults": "No conversations found",
+      "tryAdjusting": "Try adjusting your filters or search query",
+      "export": {
+        "button": "Export Conversations",
+        "formats": {
+          "csv": {
+            "label": "CSV",
+            "description": "Simple text format, works with any spreadsheet app"
+          },
+          "excel": {
+            "label": "Excel",
+            "description": "Formatted Excel workbook with proper columns"
+          },
+          "json": {
+            "label": "JSON",
+            "description": "Raw data format for developers"
+          }
+        }
+      },
+      "description": "View and manage your chatbot conversations",
+      "searchPlaceholder": "Search conversations..."
+    },
+    "playground": {
+      "title": "Playground",
+      "description": "Test your chatbot in real-time",
+      "input": {
+        "placeholder": "Type your message here...",
+        "send": "Send"
+      },
+      "settings": {
+        "title": "Settings",
+        "model": "Model",
+        "temperature": "Temperature",
+        "maxTokens": "Max Tokens"
+      },
+      "messages": {
+        "empty": "Start a conversation to test your chatbot",
+        "thinking": "Bot is thinking...",
+        "error": "Error occurred while sending message"
+      }
+    },
+    "settings": {
+      "sections": {
+        "general": "General",
+        "translations": "Translations",
+        "chatbotConfiguration": {
+          "label": "Chatbot Configuration",
+          "chatbotid": {
+            "description": "This ID will be used for all API calls and iframe integrations."
+          }
+        }
+      },
+      "description": "Configure your application preferences",
+      "section": {
+        "theme": {
+          "title": "Theme"
+        }
+      }
+    }
+  },
+  "language": {
+    "zh": "繁體中文",
+    "select": "Select Language",
+    "en": "English"
+  },
+  "export": {
+    "json": {
+      "label": "JSON"
+    },
+    "excel": {
+      "label": "Excel"
+    },
+    "csv": {
+      "label": "CSV"
+    }
+  }
+}

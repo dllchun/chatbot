@@ -12,8 +12,9 @@ import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
 import { PageContainer } from '@/components/new-version/page-container'
-
+import { useTranslation } from 'next-i18next'
 export default function SettingsPage() {
+  const { t } = useTranslation()
   const { theme, setTheme } = useTheme()
   const { 
     chatbotId, 
@@ -58,7 +59,7 @@ export default function SettingsPage() {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`, 
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ chatbotId: newChatbotId })
@@ -88,8 +89,8 @@ export default function SettingsPage() {
 
   return (
     <PageContainer
-      title="Settings"
-      description="Configure your application preferences"
+      title={t("components.sidebar.menu.settings")}
+      description={t("pages.settings.description")}
     >
       {!isConfigured && (
         <Alert className="mb-6 border-orange-500 text-orange-500">
@@ -105,7 +106,7 @@ export default function SettingsPage() {
       <div className="space-y-6">
         {/* Theme Settings */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Theme</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("pages.settings.section.theme.title")}</h2>
           <div className="flex flex-wrap gap-4">
             <Button
               variant={theme === 'light' ? 'default' : 'outline'}
@@ -113,7 +114,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2"
             >
               <Sun className="h-4 w-4" />
-              Light
+              {t("common.theme.light")}
             </Button>
             <Button
               variant={theme === 'dark' ? 'default' : 'outline'}
@@ -121,7 +122,7 @@ export default function SettingsPage() {
               className="flex items-center gap-2"
             >
               <Moon className="h-4 w-4" />
-              Dark
+              {t("common.theme.dark")}
             </Button>
             <Button
               variant={theme === 'system' ? 'default' : 'outline'}
@@ -129,14 +130,14 @@ export default function SettingsPage() {
               className="flex items-center gap-2"
             >
               <Monitor className="h-4 w-4" />
-              System
+              {t("common.theme.system")}
             </Button>
           </div>
         </Card>
 
         {/* Chatbot Configuration */}
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Chatbot Configuration</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("pages.settings.sections.chatbotConfiguration.label")}</h2>
           <div className="space-y-4 max-w-md">
             <div className="space-y-2">
               <Label htmlFor="chatbotId">
@@ -159,11 +160,11 @@ export default function SettingsPage() {
                   disabled={loading}
                   variant={!isConfigured ? "default" : "outline"}
                 >
-                  {loading ? 'Saving...' : 'Save'}
+                  {loading ? t("common.actions.saving") : t("common.actions.save")}
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">
-                This ID will be used for all API calls and iframe integrations.
+                {t("pages.settings.sections.chatbotConfiguration.chatbotid.description")}
                 {!isConfigured && (
                   <span className="text-orange-500 block mt-1">
                     Required for the application to function properly.
