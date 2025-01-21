@@ -82,7 +82,7 @@ function getConversationTitle(conversation: Conversation, t: any): string {
   }
 
   // Handle website sources
-  const websiteSources = ['widget', 'iframe', 'playground']
+  const websiteSources = ['Widget or Iframe', 'playground']
   if (websiteSources.includes(conversation.source?.toLowerCase() || '')) {
     return t('common.website')
   }
