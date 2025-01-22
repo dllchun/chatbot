@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useChatbotPreference } from '@/lib/hooks/useChatbotPreference'
 import { PageContainer } from '@/components/new-version/page-container'
 import { useTranslation } from 'next-i18next'
+
 export default function SettingsPage() {
   const { t } = useTranslation()
   const { theme, setTheme } = useTheme()

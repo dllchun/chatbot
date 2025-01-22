@@ -1,24 +1,24 @@
 'use client'
 
-import { ClerkProvider, useAuth } from '@clerk/nextjs'
-import { ThemeProvider } from '@/components/providers/theme-provider'
-import { LanguageProvider } from '@/components/providers/language-provider'
-import { PageTransition } from '@/components/layout/page-transition'
-import { Suspense, useState, useEffect } from 'react'
-import { LoadingPage } from '@/components/ui/loading'
-import { Toaster } from 'sonner'
+import { useState, useEffect } from 'react'
 import { Inter } from 'next/font/google'
+import { ClerkProvider, useAuth } from '@clerk/nextjs'
+import { ThemeProvider } from 'next-themes'
+import { LanguageProvider } from '@/components/providers/language-provider'
 import { NewVersionSidebar } from '@/components/new-version/sidebar'
-import { Container } from '@/components/new-version/container'
+import { Menu } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Toaster } from 'sonner'
 import { usePathname } from 'next/navigation'
+import { LoadingPage } from '@/components/ui/loading'
+import '@/lib/i18n'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-// Wrap the authenticated content
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { isLoaded, userId } = useAuth()
-  const [collapsed, setCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
   const pathname = usePathname()
 
@@ -27,7 +27,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
       if (window.innerWidth < 768) {
-        setCollapsed(true)
+        setSidebarCollapsed(true)
       }
     }
 
@@ -41,7 +41,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   // Auto collapse on mobile when route changes
   useEffect(() => {
     if (isMobile) {
-      setCollapsed(true)
+      setSidebarCollapsed(true)
     }
   }, [pathname, isMobile])
 
@@ -55,25 +55,37 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     return children
   }
 
-  // Show authenticated layout with sidebar
   return (
-    <div className="min-h-screen bg-[#25212d]">
-      {/* Overlay */}
-      {isMobile && !collapsed && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setCollapsed(true)}
+    <div className="h-screen w-full flex flex-col">
+      {/* Mobile Header */}
+      <div className="md:hidden h-14 bg-[#25212d] z-50 px-4 flex items-center justify-between">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarCollapsed(false)}
+            className="text-zinc-400 hover:text-white hover:bg-white/5"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="ml-3 text-xl font-bold flex items-center text-white">
+            <span className="text-[#6B4EFF] mr-1">i2</span>
+            <span>.ai</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Layout */}
+      <div className="flex-1 flex h-[calc(100vh-3.5rem)] md:h-screen relative">
+        <NewVersionSidebar
+          collapsed={sidebarCollapsed}
+          onCollapse={setSidebarCollapsed}
         />
-      )}
-      
-      <div className="flex h-screen relative">
-        <NewVersionSidebar 
-          collapsed={collapsed}
-          onCollapse={setCollapsed}
-        />
-        <Container>
+        
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto bg-background">
           {children}
-        </Container>
+        </main>
       </div>
     </div>
   )
@@ -85,26 +97,22 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
-      signInFallbackRedirectUrl="/conversations"
-      signUpFallbackRedirectUrl="/conversations"
-    >
+    <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
-          <ThemeProvider>
+        <body className={`${inter.className} overflow-hidden`}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
             <LanguageProvider>
-              <Suspense fallback={<LoadingPage />}>
-                <PageTransition>
-                  <AuthenticatedLayout>
-                    {children}
-                  </AuthenticatedLayout>
-                </PageTransition>
-              </Suspense>
-              <Toaster position="bottom-right" />
+              <AuthenticatedLayout>
+                {children}
+              </AuthenticatedLayout>
             </LanguageProvider>
           </ThemeProvider>
+          <Toaster position="bottom-right" />
         </body>
       </html>
     </ClerkProvider>
