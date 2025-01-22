@@ -59,6 +59,37 @@
         "title": "支援",
         "faq": "常見問題"
       }
+    },
+    "analytics": {
+      "stats": {
+        "totalConversations": "總對話數",
+        "totalUsers": "總用戶數",
+        "avgResponseTime": "平均回應時間",
+        "engagementRate": "互動率"
+      },
+      "performance": {
+        "successRate": "成功率",
+        "handoffRate": "轉接率",
+        "bounceRate": "跳出率"
+      },
+      "messagesChart": {
+        "title": "對話數量"
+      },
+      "contentAnalysis": {
+        "title": "內容分析",
+        "topUserQueries": "熱門用戶查詢",
+        "commonKeywords": "常見關鍵字"
+      },
+      "distributionCard": {
+        "responseTimeDistribution": "回應時間分佈",
+        "conversationLengthDistribution": "對話長度分佈",
+        "timeOfDayDistribution": "一天中的時間分佈",
+        "sourceDistribution": "來源分佈",
+        "countryDistribution": "國家分佈"
+      },
+      "countryAnalytics": {
+        "title": "國家地圖"
+      }
     }
   },
   "pages": {
@@ -122,6 +153,10 @@
           "title": "主題"
         }
       }
+    },
+    "analytics": {
+      "title": "分析儀表板",
+      "description": "追蹤並分析您的聊天機器人表現"
     }
   }
 }

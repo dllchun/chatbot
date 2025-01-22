@@ -2,6 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MessageSquare, Users, Clock, TrendingUp } from 'lucide-react'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
+import { useTranslation } from 'react-i18next'
 
 interface StatsOverviewProps {
   analytics: AnalyticsResponse | null
@@ -9,6 +10,7 @@ interface StatsOverviewProps {
 }
 
 export function StatsOverview({ analytics, isLoading }: StatsOverviewProps) {
+  const {t} = useTranslation()
   // Calculate percentage changes based on previous period
   const calculateChange = (current: number, previous: number) => {
     if (previous === 0) return '0'
@@ -17,7 +19,7 @@ export function StatsOverview({ analytics, isLoading }: StatsOverviewProps) {
 
   const stats = [
     {
-      name: 'Total Conversations',
+      name: t("components.analytics.stats.totalConversations"),
       value: analytics?.totalConversations || 0,
       change: analytics ? calculateChange(
         analytics.totalConversations,
@@ -26,7 +28,7 @@ export function StatsOverview({ analytics, isLoading }: StatsOverviewProps) {
       icon: MessageSquare
     },
     {
-      name: 'Total Users',
+      name: t("components.analytics.stats.totalUsers"),
       value: analytics?.totalUsers || 0,
       change: analytics ? calculateChange(
         analytics.totalUsers,
@@ -35,7 +37,7 @@ export function StatsOverview({ analytics, isLoading }: StatsOverviewProps) {
       icon: Users
     },
     {
-      name: 'Avg. Response Time',
+      name: t("components.analytics.stats.avgResponseTime"),
       value: analytics?.averageResponseTime ? `${Math.round(analytics.averageResponseTime / 1000)}s` : '0s',
       change: analytics ? calculateChange(
         analytics.averageResponseTime,
@@ -44,7 +46,7 @@ export function StatsOverview({ analytics, isLoading }: StatsOverviewProps) {
       icon: Clock
     },
     {
-      name: 'Engagement Rate',
+      name: t("components.analytics.stats.engagementRate"),
       value: analytics?.engagementRate ? `${Math.round(analytics.engagementRate)}%` : '0%',
       change: analytics ? calculateChange(
         analytics.engagementRate,

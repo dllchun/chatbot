@@ -40,6 +40,37 @@
         "title": "Support",
         "faq": "FAQ"
       }
+    },
+    "analytics": {
+      "stats": {
+        "totalConversations": "Total Conversations",
+        "totalUsers": "Total Users",
+        "avgResponseTime": "Avg. Response Time",
+        "engagementRate": "Engagement Rate"
+      },
+      "performance": {
+        "successRate": "Success Rate",
+        "handoffRate": "Handoff Rate",
+        "bounceRate": "Bounce Rate"
+      },
+      "messagesChart": {
+        "title": "Messages Over Time"
+      },
+      "contentAnalysis": {
+        "title": "Content Analysis",
+        "topUserQueries": "Top User Queries",
+        "commonKeywords": "Common Keywords"
+      },
+      "distributionCard": {
+        "responseTimeDistribution": "Response Time Distribution",
+        "conversationLengthDistribution": "Conversation Length Distribution",
+        "timeOfDayDistribution": "Time of Day Distribution",
+        "sourceDistribution": "Source Distribution",
+        "countryDistribution": "Country Distribution"
+      },
+      "countryAnalytics": {
+        "title": "Country Map"
+      }
     }
   },
   "pages": {
@@ -103,6 +134,10 @@
           "title": "Theme"
         }
       }
+    },
+    "analytics": {
+      "title": "Analytics Dashboard",
+      "description": "Track and analyze your chatbot's performance"
     }
   },
   "language": {

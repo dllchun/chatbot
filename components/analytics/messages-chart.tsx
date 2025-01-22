@@ -4,6 +4,7 @@ import { LineChart } from '@/components/analytics/line-chart'
 import type { DateRange } from 'react-day-picker'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
 import { isWithinInterval, parseISO } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 
 interface MessagesChartProps {
   analytics: AnalyticsResponse | null
@@ -12,6 +13,7 @@ interface MessagesChartProps {
 }
 
 export function MessagesChart({ analytics, isLoading, dateRange }: MessagesChartProps) {
+  const {t} = useTranslation()
   if (isLoading) {
     return (
       <Card className="p-6">
@@ -32,7 +34,7 @@ export function MessagesChart({ analytics, isLoading, dateRange }: MessagesChart
 
   return (
     <LineChart
-      title="Messages Over Time"
+      title={t("components.analytics.messagesChart.title")}
       data={filteredData}
       dataKey="count"
       height={350}

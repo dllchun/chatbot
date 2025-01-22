@@ -2,6 +2,7 @@ import { Clock, ThumbsUp, Users, ThumbsDown } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
+import { useTranslation } from 'react-i18next'
 
 interface PerformanceOverviewProps {
   analytics: AnalyticsResponse | null
@@ -9,9 +10,10 @@ interface PerformanceOverviewProps {
 }
 
 export function PerformanceOverview({ analytics, isLoading }: PerformanceOverviewProps) {
+  const {t} = useTranslation()
   const stats = [
     {
-      name: 'Avg. Response Time',
+      name: t("components.analytics.stats.avgResponseTime"),
       value: analytics?.performance?.averageResponseTime ? 
         `${(analytics.performance.averageResponseTime / 1000).toFixed(1)}s` : '0s',
       change: analytics?.performanceMetrics?.averageResponseTime ? 
@@ -20,7 +22,7 @@ export function PerformanceOverview({ analytics, isLoading }: PerformanceOvervie
       icon: Clock
     },
     {
-      name: 'Success Rate',
+      name: t("components.analytics.performance.successRate"),
       value: analytics?.performance?.successRate ? 
         `${analytics.performance.successRate.toFixed(1)}%` : '0%',
       change: analytics?.performanceMetrics?.successRate ? 
@@ -29,7 +31,7 @@ export function PerformanceOverview({ analytics, isLoading }: PerformanceOvervie
       icon: ThumbsUp
     },
     {
-      name: 'Handoff Rate',
+      name: t("components.analytics.performance.handoffRate"),
       value: analytics?.performance?.handoffRate ? 
         `${analytics.performance.handoffRate.toFixed(1)}%` : '0%',
       change: analytics?.performanceMetrics?.handoffRate ? 
@@ -38,7 +40,7 @@ export function PerformanceOverview({ analytics, isLoading }: PerformanceOvervie
       icon: Users
     },
     {
-      name: 'Bounce Rate',
+      name: t("components.analytics.performance.bounceRate"),
       value: analytics?.userEngagement?.bounceRate ? 
         `${analytics.userEngagement.bounceRate.toFixed(1)}%` : '0%',
       change: analytics?.userEngagementMetrics?.bounceRate ? 

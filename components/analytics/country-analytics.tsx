@@ -3,18 +3,19 @@ import { WorldMap } from '@/components/analytics/world-map'
 import { DistributionCard } from '@/components/analytics/distribution-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
-
+import { useTranslation } from 'react-i18next'
 interface CountryAnalyticsProps {
   analytics: AnalyticsResponse | null
   isLoading: boolean
 }
 
 export function CountryAnalytics({ analytics, isLoading }: CountryAnalyticsProps) {
+  const {t} = useTranslation()
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Country Distribution</CardTitle>
+          <CardTitle>{t("components.analytics.countryAnalytics.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[400px] w-full" />
@@ -38,7 +39,7 @@ export function CountryAnalytics({ analytics, isLoading }: CountryAnalyticsProps
     <div className="grid grid-cols-1 gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Country Map</CardTitle>
+          <CardTitle>{t("components.analytics.countryAnalytics.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <WorldMap countryDistribution={analytics.countryDistribution} />

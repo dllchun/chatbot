@@ -17,8 +17,10 @@ import type { DateRange } from 'react-day-picker'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
 import { ChatbotRequired } from '@/components/ui/chatbot-required'
 import { useSettings } from '@/lib/store/settings'
+import { useTranslation } from 'react-i18next'
 
 export default function AnalyticsPage() {
+  const {t} = useTranslation()
   const { chatbotId, isConfigured } = useSettings()
   const { getToken } = useAuth()
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -84,8 +86,8 @@ export default function AnalyticsPage() {
 
   return (
     <PageContainer
-      title="Analytics Dashboard"
-      description="Track and analyze your chatbot's performance"
+      title= {t("pages.analytics.title")}
+      description={t("pages.analytics.description")}
       headerContent={
         <DateRangePicker
           value={dateRange}
@@ -131,7 +133,7 @@ export default function AnalyticsPage() {
           {/* Row 4: Response Time and Conversation Length Distributions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DistributionCard
-              title="Response Time Distribution"
+              title={t("components.analytics.distributionCard.responseTimeDistribution")}
               items={analyticsData?.responseTimeDistribution ? 
                 Object.entries(analyticsData.responseTimeDistribution).map(([key, value]) => ({
                   key,
@@ -141,7 +143,7 @@ export default function AnalyticsPage() {
               }
             />
             <DistributionCard
-              title="Conversation Length Distribution"
+              title={t("components.analytics.distributionCard.conversationLengthDistribution")}
               items={analyticsData?.conversationLengthDistribution ? 
                 Object.entries(analyticsData.conversationLengthDistribution).map(([key, value]) => ({
                   key,
@@ -155,7 +157,7 @@ export default function AnalyticsPage() {
           {/* Row 5: Time of Day and Source Distributions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DistributionCard
-              title="Time of Day Distribution"
+              title={t("components.analytics.distributionCard.timeOfDayDistribution")}
               items={analyticsData?.timeOfDayDistribution ? 
                 Object.entries(analyticsData.timeOfDayDistribution)
                   .filter(([key]) => ['morning', 'afternoon', 'evening', 'night'].includes(key))
@@ -167,7 +169,7 @@ export default function AnalyticsPage() {
               }
             />
             <DistributionCard
-              title="Source Distribution"
+              title={t("components.analytics.distributionCard.sourceDistribution")}
               items={analyticsData?.sourceDistribution ? 
                 Object.entries(analyticsData.sourceDistribution)
                   .map(([key, value]) => ({
@@ -186,7 +188,7 @@ export default function AnalyticsPage() {
               isLoading={isLoading}
             />
             <DistributionCard
-              title="Country Distribution"
+              title={t("components.analytics.distributionCard.countryDistribution")}
               items={analyticsData?.countryDistribution ? 
                 Object.entries(analyticsData.countryDistribution)
                   .map(([key, value]) => ({

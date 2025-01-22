@@ -1,21 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ContentMetrics } from '@/lib/utils/analytics'
 import ReactMarkdown from 'react-markdown'
+import { useTranslation } from 'react-i18next'
 
 interface ContentAnalysisProps {
   content: ContentMetrics
 }
 
 export function ContentAnalysis({ content }: ContentAnalysisProps) {
+  const {t} = useTranslation()
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Content Analysis</CardTitle>
+        <CardTitle>{t("components.analytics.contentAnalysis.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
-            <h4 className="mb-4 font-medium">Top User Queries</h4>
+            <h4 className="mb-4 font-medium">{t("components.analytics.contentAnalysis.topUserQueries")}</h4>
             <div className="space-y-2">
               {content.topUserQueries.map(({ query, count }) => (
                 <div key={query} className="flex justify-between">
@@ -28,7 +30,7 @@ export function ContentAnalysis({ content }: ContentAnalysisProps) {
             </div>
           </div>
           <div>
-            <h4 className="mb-4 font-medium">Common Keywords</h4>
+            <h4 className="mb-4 font-medium">{t("components.analytics.contentAnalysis.commonKeywords")}</h4>
             <div className="flex flex-wrap gap-2">
               {content.commonKeywords.map(({ keyword, count }) => (
                 <div
