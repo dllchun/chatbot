@@ -112,7 +112,7 @@ export default function ApiTestPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       <h1 className="text-2xl font-bold mb-6">API Test Page</h1>
       
-      <Card className="p-4 mb-6">
+      <Card className="p-4 mb-4">
         <h2 className="text-lg font-semibold mb-4">Global Parameters</h2>
         <div className="flex gap-4">
           <Input
