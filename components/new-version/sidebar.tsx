@@ -181,7 +181,7 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
 
         {/* Bottom Section */}
         <div className="p-3 border-t border-white/10">
-          {/* Support Links */}
+          {/* Support Links 
           <div className="mb-4">
             {bottomMenuItems.map((item) => (
               <Link
@@ -198,7 +198,7 @@ export function NewVersionSidebar({ collapsed, onCollapse }: SidebarProps) {
                 {!collapsed && <span className="ml-3">{t(item.title)}</span>}
               </Link>
             ))}
-          </div>
+          </div>*/}
 
           {/* Settings Group */}
           <div className="space-y-2">
