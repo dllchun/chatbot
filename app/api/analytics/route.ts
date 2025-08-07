@@ -2,14 +2,8 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getAnalytics } from '@/lib/api/chatbase'
 import { config, validateServerConfig } from '@/lib/config'
-import { executeQuery } from '@/lib/database/queries'
-import { RowDataPacket } from 'mysql2'
 
 export const runtime = 'nodejs';
-
-interface ConversationCountRow extends RowDataPacket {
-  count: number;
-}
 
 export async function GET(request: Request) {
   try {
@@ -44,15 +38,6 @@ export async function GET(request: Request) {
       throw new Error('Missing CHATBASE_API_KEY environment variable')
     }
 
-    // Check if we have cached conversations in MySQL
-    const countResult = await executeQuery<ConversationCountRow[]>(
-      `SELECT COUNT(*) as count FROM conversations 
-       WHERE chatbot_id = ? AND created_at >= ? AND created_at <= ?`,
-      [chatbotId, startDate, endDate]
-    )
-
-    console.log('Conversation count:', countResult.data?.[0]?.count || 0)
-
     // Get analytics (will use cache if available)
     const analytics = await getAnalytics({
       apiKey,
@@ -63,13 +48,13 @@ export async function GET(request: Request) {
       authToken: undefined
     })
 
-    console.log('Analytics response:', {
-      totalConversations: analytics.totalConversations,
-      totalMessages: analytics.totalMessages,
-      sourceDistribution: analytics.sourceDistribution
-    })
-
-    return NextResponse.json(analytics)
+    // Add caching headers for analytics data (5 minutes)
+    const response = NextResponse.json(analytics)
+    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300')
+    response.headers.set('CDN-Cache-Control', 'public, max-age=300')
+    response.headers.set('Vary', 'Authorization')
+    
+    return response
   } catch (error) {
     console.error('Analytics error:', error)
     return NextResponse.json(

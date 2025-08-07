@@ -1,16 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { StatsOverview } from '@/components/analytics/stats-overview'
 import { PerformanceOverview } from '@/components/analytics/performance-overview'
 import { MessagesChart } from '@/components/analytics/messages-chart'
-import { GrowthAndRetention } from '@/components/analytics/growth-and-retention'
 import { CountryAnalytics } from '@/components/analytics/country-analytics'
 import { ContentAnalysis } from '@/components/analytics/content-analysis'
 import { DistributionCard } from '@/components/analytics/distribution-card'
 import { PageContainer } from '@/components/new-version/page-container'
-import { Button } from '@/components/ui/button'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { addDays } from 'date-fns'
 import type { DateRange } from 'react-day-picker'
@@ -30,6 +28,7 @@ export default function AnalyticsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [analyticsData, setAnalyticsData] = useState<AnalyticsResponse | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     if (range?.from && range?.to) {
@@ -37,7 +36,14 @@ export default function AnalyticsPage() {
     }
   }
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
     try {
       setIsLoading(true)
       setError(null)
@@ -57,7 +63,8 @@ export default function AnalyticsPage() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-        }
+        },
+        signal: abortController.signal
       })
 
       if (!response.ok) {
@@ -67,18 +74,31 @@ export default function AnalyticsPage() {
       const data = await response.json()
       setAnalyticsData(data as AnalyticsResponse)
     } catch (err) {
-      console.error('Failed to fetch analytics:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch analytics')
+      // Don't set error if request was aborted
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Failed to fetch analytics:', err)
+        setError(err.message)
+      }
     } finally {
       setIsLoading(false)
+      abortControllerRef.current = null
     }
-  }
+  }, [chatbotId, dateRange])
 
   useEffect(() => {
-    if (isConfigured && dateRange.from && dateRange.to) {
+    if (isConfigured && dateRange.from && dateRange.to && chatbotId) {
       fetchAnalytics()
     }
-  }, [isConfigured, dateRange, getToken])
+  }, [isConfigured, dateRange, chatbotId, fetchAnalytics])
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   if (!isConfigured) {
     return <ChatbotRequired />
