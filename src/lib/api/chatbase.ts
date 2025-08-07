@@ -193,7 +193,12 @@ export async function getConversations({
         firstId: cachedData[0]?.id
       })
       return {
-        data: cachedData as Conversation[],
+        data: cachedData.map(conv => ({
+          ...conv,
+          created_at: conv.created_at.toISOString(),
+          updated_at: conv.updated_at.toISOString(),
+          last_message_at: conv.last_message_at ? conv.last_message_at.toISOString() : null
+        })) as Conversation[],
         page,
         size,
         total: cachedData.length
@@ -255,7 +260,12 @@ export async function getAnalytics({
 
     if (cachedData.length > 0) {
       console.log('Using cached analytics data')
-      return processAnalytics(cachedData as Conversation[])
+      return processAnalytics(cachedData.map(conv => ({
+        ...conv,
+        created_at: conv.created_at.toISOString(),
+        updated_at: conv.updated_at.toISOString(),
+        last_message_at: conv.last_message_at ? conv.last_message_at.toISOString() : null
+      })) as Conversation[])
     }
   }
 

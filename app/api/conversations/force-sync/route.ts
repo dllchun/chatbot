@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { executeMutation } from '@/lib/db/queries'
+import { executeMutation } from '@/lib/database/queries'
 
 export const runtime = 'nodejs';
 

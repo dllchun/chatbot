@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getConversations } from '@/lib/api/chatbase'
 import { config, validateServerConfig } from '@/lib/config'
-import { executeQuery, executeMutation } from '@/lib/db/queries'
+import { executeQuery, executeMutation } from '@/lib/database/queries'
 import { RowDataPacket } from 'mysql2'
 
 export const runtime = 'nodejs';

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { executeQuery } from '@/lib/db/queries'
+import { executeQuery } from '@/lib/database/queries'
 import type { Message } from '@/types/api'
 import * as XLSX from 'xlsx'
 import { RowDataPacket } from 'mysql2'

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { executeQuery } from '@/lib/db/queries'
+import { executeQuery } from '@/lib/database/queries'
 import { RowDataPacket } from 'mysql2'
 
 export const runtime = 'nodejs';

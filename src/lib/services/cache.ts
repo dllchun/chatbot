@@ -1,4 +1,4 @@
-import { executeQuery, executeMutation, upsert } from '@/lib/db/queries';
+import { executeQuery, executeMutation, upsert } from '@/lib/database/queries';
 import type { Conversation } from '@/types/api';
 import { RowDataPacket } from 'mysql2';
 

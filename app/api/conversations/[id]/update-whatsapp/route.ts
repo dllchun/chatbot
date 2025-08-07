@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { executeMutation } from '@/lib/db/queries';
+import { executeMutation } from '@/lib/database/queries';
 
 export const runtime = 'nodejs';
 
