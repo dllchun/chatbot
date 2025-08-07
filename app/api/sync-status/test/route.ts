@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createClient } from '@supabase/supabase-js'
+import { executeQuery, executeMutation } from '@/lib/db/queries'
+import { RowDataPacket } from 'mysql2'
+
+export const runtime = 'nodejs';
+
+interface SyncStatusRow extends RowDataPacket {
+  id: number;
+  chatbot_id: string;
+  last_synced_at: Date;
+  status: string;
+}
 
 export async function POST() {
   try {
@@ -13,46 +23,51 @@ export async function POST() {
       )
     }
 
-    // Create Supabase admin client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    console.log('Testing sync status with MySQL...')
 
     // Insert test data
-    const testData = {
-      chatbot_id: 'PTnQaHCF4UkuO5mxwItxv',
-      last_synced_at: new Date().toISOString(),
-      last_sync_count: 20,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    const testChatbotId = 'PTnQaHCF4UkuO5mxwItxv'
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+
+    const result = await executeMutation(
+      `INSERT INTO sync_status (chatbot_id, last_synced_at, status, sync_count)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE 
+       last_synced_at = VALUES(last_synced_at),
+       status = VALUES(status),
+       sync_count = sync_count + 1,
+       updated_at = NOW()`,
+      [testChatbotId, now, 'test', 1]
+    )
+
+    if (result.error) {
+      throw result.error
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('sync_status')
-      .upsert(testData)
-      .select()
+    // Retrieve the data
+    const selectResult = await executeQuery<SyncStatusRow[]>(
+      'SELECT * FROM sync_status WHERE chatbot_id = ?',
+      [testChatbotId]
+    )
 
-    if (error) {
-      console.error('Error inserting test data:', error)
-      return NextResponse.json(
-        { error: 'Failed to insert test data' },
-        { status: 500 }
-      )
+    if (selectResult.error) {
+      throw selectResult.error
     }
 
-    return NextResponse.json(data)
+    return NextResponse.json({
+      success: true,
+      data: selectResult.data || [],
+      message: 'Test data inserted/updated successfully'
+    })
+
   } catch (error) {
     console.error('Test endpoint error:', error)
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { 
+        error: 'Internal Server Error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
-} 
+}

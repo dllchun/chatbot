@@ -1,8 +1,9 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { executeMutation } from '@/lib/db/queries';
 
-import { supabase } from '@/lib/api/supabase';
+export const runtime = 'nodejs';
 
 // Define and validate the WhatsApp number format
 const UpdateSchema = z.object({
@@ -32,17 +33,26 @@ export async function POST(
     const body = await req.json();
     const { whatsappNumber } = UpdateSchema.parse(body);
 
-    // Update the record in the database
-    const { error } = await supabase
-      .from('conversations')
-      .update({ whatsapp_number: whatsappNumber })
-      .eq('id', id)
-      .eq('user_id', userId);
+    console.log('Updating WhatsApp number:', {
+      conversationId: id,
+      whatsappNumber,
+      userId
+    });
+
+    // Update the record in MySQL
+    const result = await executeMutation(
+      'UPDATE conversations SET whatsapp_number = ?, updated_at = NOW() WHERE id = ?',
+      [whatsappNumber, id]
+    );
 
     // Handle potential database errors
-    if (error) {
-      console.error('Error updating WhatsApp number:', error);
+    if (result.error) {
+      console.error('Error updating WhatsApp number:', result.error);
       return new NextResponse('Internal Server Error', { status: 500 });
+    }
+
+    if (result.data && result.data.affectedRows === 0) {
+      return new NextResponse('Conversation not found', { status: 404 });
     }
 
     // Return a success response

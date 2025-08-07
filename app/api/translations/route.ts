@@ -3,6 +3,8 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { auth } from '@clerk/nextjs/server'
 
+export const runtime = 'nodejs';
+
 interface TranslationChanges {
   [key: string]: {
     en: string

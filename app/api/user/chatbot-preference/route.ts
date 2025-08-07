@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@/types/supabase';
+import { executeQuery, executeMutation } from '@/lib/db/queries';
+import { RowDataPacket } from 'mysql2';
 
 // Types
 interface ChatbotPreferenceResponse {
@@ -16,17 +16,9 @@ interface SavePreferenceResponse {
   error?: string;
 }
 
-// Create a Supabase client
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
+interface UserPreferenceRow extends RowDataPacket {
+  preferred_chatbot_id: string | null;
+}
 
 // Helper function to add CORS headers
 function corsHeaders() {
@@ -73,15 +65,14 @@ export async function GET(request: Request) {
       })
     }
 
-    // Fetch preference
-    const { data, error } = await supabase
-      .from('users')
-      .select('preferred_chatbot_id')
-      .eq('id', userId)
-      .single()
+    // Fetch preference from MySQL
+    const result = await executeQuery<UserPreferenceRow[]>(
+      'SELECT preferred_chatbot_id FROM users WHERE id = ?',
+      [userId]
+    )
 
-    if (error) {
-      console.error('Database error:', error)
+    if (result.error) {
+      console.error('Database error:', result.error)
       return createResponse({
         chatbotId: null,
         needsConfiguration: true,
@@ -89,7 +80,17 @@ export async function GET(request: Request) {
       }, 500)
     }
 
-    if (!data?.preferred_chatbot_id) {
+    if (!result.data || result.data.length === 0) {
+      return createResponse({
+        chatbotId: null,
+        needsConfiguration: true,
+        message: 'User not found'
+      })
+    }
+
+    const chatbotId = result.data[0].preferred_chatbot_id
+
+    if (!chatbotId) {
       return createResponse({
         chatbotId: null,
         needsConfiguration: true,
@@ -98,7 +99,7 @@ export async function GET(request: Request) {
     }
 
     return createResponse({
-      chatbotId: data.preferred_chatbot_id,
+      chatbotId: chatbotId,
       needsConfiguration: false
     })
   } catch (error) {
@@ -145,14 +146,14 @@ export async function POST(request: Request) {
       }, 400)
     }
 
-    // Update preference
-    const { error } = await supabase
-      .from('users')
-      .update({ preferred_chatbot_id: chatbotId.trim() })
-      .eq('id', userId)
+    // Update preference in MySQL
+    const result = await executeMutation(
+      'UPDATE users SET preferred_chatbot_id = ?, updated_at = NOW() WHERE id = ?',
+      [chatbotId.trim(), userId]
+    )
 
-    if (error) {
-      console.error('Database error:', error)
+    if (result.error) {
+      console.error('Database error:', result.error)
       return createResponse({ 
         success: false, 
         error: 'Failed to save preference' 

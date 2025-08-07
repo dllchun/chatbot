@@ -1,10 +1,38 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { auth } from '@clerk/nextjs/server'
+import { executeQuery } from '@/lib/db/queries'
 import type { Message } from '@/types/api'
 import * as XLSX from 'xlsx'
+import { RowDataPacket } from 'mysql2'
+
+export const runtime = 'nodejs';
+
+interface ConversationExportRow extends RowDataPacket {
+  id: string;
+  chatbot_id: string;
+  source: string;
+  whatsapp_number: string | null;
+  customer: string | null;
+  messages: any;
+  min_score: number | null;
+  form_submission: any;
+  country: string | null;
+  last_message_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
 
 export async function GET(request: Request) {
   try {
+    // Get Clerk session
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     // Parse URL and validate parameters
     const { searchParams } = new URL(request.url)
     const chatbotId = searchParams.get('chatbotId')
@@ -17,28 +45,18 @@ export async function GET(request: Request) {
       )
     }
 
-    // Create Supabase admin client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+    // Fetch conversations from MySQL
+    const result = await executeQuery<ConversationExportRow[]>(
+      'SELECT * FROM conversations WHERE chatbot_id = ? ORDER BY created_at DESC',
+      [chatbotId]
     )
 
-    // Fetch conversations from Supabase
-    const { data: conversations, error: fetchError } = await supabaseAdmin
-      .from('conversations')
-      .select('*')
-      .eq('chatbot_id', chatbotId)
-      .order('created_at', { ascending: false })
-
-    if (fetchError) {
+    if (result.error) {
+      console.error('Failed to fetch conversations:', result.error)
       throw new Error('Failed to fetch conversations')
     }
+
+    const conversations = result.data || []
 
     // Define headers for structured data
     const headers = [
@@ -48,154 +66,76 @@ export async function GET(request: Request) {
       'Country',
       'WhatsApp Number',
       'Total Messages',
-      'Start Time',
-      'End Time',
-      'Message #',
-      'Sender',
-      'Message Content',
-      'Message Time',
-      'Message Score'
+      'Min Score',
+      'First Message',
+      'Last Message',
+      'Created At',
+      'Last Message At'
     ]
 
-    // Helper function to safely convert any value to a string
-    const toCsvString = (value: any): string => {
-      if (value === null || value === undefined) {
-        return ''
-      }
-      const str = String(value)
-      return str.replace(/[\n\r]/g, ' ').replace(/,/g, ';')
-    }
-
-    // Format conversations with expanded messages
-    const rows: any[][] = []
-    
-    conversations.forEach(conv => {
-      const messages = Array.isArray(conv.messages) ? conv.messages : []
-      const startTime = new Date(conv.created_at).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
-      const endTime = new Date(conv.updated_at).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
+    // Transform conversations data for export
+    const rows = conversations.map(conv => {
+      const messages: Message[] = typeof conv.messages === 'string' 
+        ? JSON.parse(conv.messages) 
+        : conv.messages || []
       
-      // Add each message as a separate row with conversation context
-      messages.forEach((msg: Message, index: number) => {
-        const sender = msg.role === 'assistant' ? 'Bot' : 'User'
-        const messageTime = msg.timestamp 
-          ? new Date(msg.timestamp).toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })
-          : startTime // fallback to conversation start time if no message timestamp
-        
-        rows.push([
-          conv.id,
-          conv.customer || 'Anonymous',
-          conv.source,
-          conv.country || 'Unknown',
-          conv.whatsapp_number || 'N/A',
-          messages.length,
-          startTime,
-          endTime,
-          index + 1,
-          sender,
-          msg.content || '',
-          messageTime,
-          msg.score || 'N/A'
-        ])
-      })
+      const firstMessage = messages[0]?.content || ''
+      const lastMessage = messages[messages.length - 1]?.content || ''
 
-      // If conversation has no messages, add a single row
-      if (messages.length === 0) {
-        rows.push([
-          conv.id,
-          conv.customer || 'Anonymous',
-          conv.source,
-          conv.country || 'Unknown',
-          conv.whatsapp_number || 'N/A',
-          0,
-          startTime,
-          endTime,
-          0,
-          'N/A',
-          'No messages',
-          startTime,
-          'N/A'
-        ])
-      }
+      return [
+        conv.id,
+        conv.customer || 'Unknown',
+        conv.source,
+        conv.country || 'Unknown',
+        conv.whatsapp_number || '',
+        messages.length,
+        conv.min_score || 0,
+        firstMessage,
+        lastMessage,
+        new Date(conv.created_at).toISOString(),
+        conv.last_message_at ? new Date(conv.last_message_at).toISOString() : ''
+      ]
     })
 
-    // Handle different export formats
-    switch (format) {
-      case 'json': {
-        // Return raw JSON data
-        return NextResponse.json(conversations, {
-          headers: {
-            'Content-Disposition': `attachment; filename="conversations-${chatbotId}-${new Date().toISOString().split('T')[0]}.json"`,
-          },
-        })
-      }
+    // Add headers as first row
+    const data = [headers, ...rows]
 
-      case 'xlsx': {
-        // Create workbook and add worksheet
-        const wb = XLSX.utils.book_new()
-        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
-
-        // Set column widths
-        const colWidths = [
-          { wch: 15 }, // ID
-          { wch: 20 }, // Customer
-          { wch: 10 }, // Source
-          { wch: 10 }, // Country
-          { wch: 15 }, // WhatsApp
-          { wch: 8 },  // Total Messages
-          { wch: 20 }, // Start Time
-          { wch: 20 }, // End Time
-          { wch: 8 },  // Message #
-          { wch: 10 }, // Sender
-          { wch: 50 }, // Content
-          { wch: 20 }, // Message Time
-          { wch: 10 }, // Score
-        ]
-        ws['!cols'] = colWidths
-
-        XLSX.utils.book_append_sheet(wb, ws, 'Conversations')
-        
-        // Generate Excel file
-        const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
-        
-        return new NextResponse(excelBuffer, {
-          headers: {
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': `attachment; filename="conversations-${chatbotId}-${new Date().toISOString().split('T')[0]}.xlsx"`,
-          },
-        })
-      }
-
-      case 'csv':
-      default: {
-        // Create CSV content with proper escaping
-        const csvContent = [
-          headers.join(','),
-          ...rows.map(row => 
-            row.map(cell => {
-              const cellStr = toCsvString(cell)
-              // Double up quotes and wrap in quotes
-              return `"${cellStr.replace(/"/g, '""')}"`
-            }).join(',')
-          )
-        ].join('\n')
-
-        // Add UTF-8 BOM and create response
-        const BOM = '\uFEFF'
-        const csvWithBOM = BOM + csvContent
-
-        return new NextResponse(csvWithBOM, {
-          headers: {
-            'Content-Type': 'text/csv; charset=utf-8',
-            'Content-Disposition': `attachment; filename="conversations-${chatbotId}-${new Date().toISOString().split('T')[0]}.csv"`,
-          },
-        })
-      }
+    if (format === 'xlsx') {
+      // Create Excel workbook
+      const ws = XLSX.utils.aoa_to_sheet(data)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Conversations')
+      
+      // Generate buffer
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+      
+      return new Response(buffer, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="conversations_${chatbotId}_${new Date().toISOString().split('T')[0]}.xlsx"`
+        }
+      })
+    } else {
+      // Default to CSV
+      const csvContent = data
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n')
+      
+      return new Response(csvContent, {
+        headers: {
+          'Content-Type': 'text/csv',
+          'Content-Disposition': `attachment; filename="conversations_${chatbotId}_${new Date().toISOString().split('T')[0]}.csv"`
+        }
+      })
     }
-  } catch (error: any) {
-    console.error('Export API Error:', error)
+  } catch (error) {
+    console.error('Export error:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { 
+        error: 'Failed to export conversations',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
-} 
+}

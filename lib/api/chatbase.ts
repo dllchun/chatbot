@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { type Database } from '@/types/supabase'
 import { processAnalytics } from '@/lib/utils/analytics'
 import type { AnalyticsResponse } from '@/lib/utils/analytics'
 import { CacheService } from '@/lib/services/cache'
@@ -47,7 +46,6 @@ const RawConversationSchema = z.object({
 export type Message = z.infer<typeof MessageSchema>
 export type Conversation = z.infer<typeof ConversationSchema>
 export type RawConversation = z.infer<typeof RawConversationSchema>
-type DbConversation = Database['public']['Tables']['conversations']['Row']
 
 // API Response Types
 export interface ChatbaseResponse<T> {

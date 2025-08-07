@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createClient } from '@supabase/supabase-js'
+import { executeMutation, executeQuery } from '@/lib/db/queries'
+import { RowDataPacket } from 'mysql2'
+
+export const runtime = 'nodejs';
+
+interface ConversationRow extends RowDataPacket {
+  id: string;
+  chatbot_id: string;
+}
 
 export async function DELETE(request: Request) {
   try {
@@ -14,9 +22,9 @@ export async function DELETE(request: Request) {
       )
     }
 
-    // Get chatbotId from URL params
-    const requestUrl = new URL(request.url)
-    const chatbotId = requestUrl.searchParams.get('chatbotId')
+    const url = new URL(request.url)
+    const chatbotId = url.searchParams.get('chatbotId')
+
     if (!chatbotId) {
       return NextResponse.json(
         { error: 'chatbotId is required' },
@@ -24,54 +32,50 @@ export async function DELETE(request: Request) {
       )
     }
 
-    console.log('Cleaning up data for chatbot:', chatbotId)
+    console.log('Cleaning up conversations for chatbot:', chatbotId)
 
-    // Create Supabase admin client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+    // First, get count of conversations to be deleted
+    const countResult = await executeQuery<ConversationRow[]>(
+      'SELECT COUNT(*) as count FROM conversations WHERE chatbot_id = ?',
+      [chatbotId]
     )
 
-    // Delete from sync_status
-    const { error: syncDeleteError } = await supabaseAdmin
-      .from('sync_status')
-      .delete()
-      .eq('chatbot_id', chatbotId)
-
-    if (syncDeleteError) {
-      console.error('Error deleting sync status:', syncDeleteError)
+    if (countResult.error) {
+      throw countResult.error
     }
 
-    // Delete from conversations
-    const { error: convsDeleteError } = await supabaseAdmin
-      .from('conversations')
-      .delete()
-      .eq('chatbot_id', chatbotId)
+    const count = countResult.data?.[0] || 0
 
-    if (convsDeleteError) {
-      console.error('Error deleting conversations:', convsDeleteError)
-      return NextResponse.json(
-        { error: 'Failed to delete conversations' },
-        { status: 500 }
-      )
+    // Delete conversations
+    const deleteResult = await executeMutation(
+      'DELETE FROM conversations WHERE chatbot_id = ?',
+      [chatbotId]
+    )
+
+    if (deleteResult.error) {
+      throw deleteResult.error
     }
+
+    // Update sync status to reset
+    await executeMutation(
+      'UPDATE sync_status SET last_synced_at = NULL, status = \'reset\', updated_at = NOW() WHERE chatbot_id = ?',
+      [chatbotId]
+    )
 
     return NextResponse.json({
       success: true,
-      message: 'Successfully cleaned up chatbot data'
+      deletedCount: deleteResult.data?.affectedRows || 0,
+      message: `Successfully cleaned up ${deleteResult.data?.affectedRows || 0} conversations`
     })
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Cleanup error:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { 
+        error: 'Failed to cleanup conversations',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
-} 
+}

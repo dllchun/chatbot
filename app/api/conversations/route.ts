@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getConversations } from '@/lib/api/chatbase'
 import { config, validateServerConfig } from '@/lib/config'
-import { createClient } from '@supabase/supabase-js'
+import { executeQuery, executeMutation } from '@/lib/db/queries'
+import { RowDataPacket } from 'mysql2'
+
+export const runtime = 'nodejs';
+
+interface SyncStatusRow extends RowDataPacket {
+  last_synced_at: Date | null;
+}
 
 export async function GET(request: Request) {
   // Initialize with empty URL to handle errors before assignment
@@ -63,26 +70,13 @@ export async function GET(request: Request) {
       forceSync
     })
 
-    // Create Supabase admin client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+    // Check last sync time from MySQL
+    const syncResult = await executeQuery<SyncStatusRow[]>(
+      'SELECT last_synced_at FROM sync_status WHERE chatbot_id = ?',
+      [chatbotId]
     )
 
-    // Check last sync time
-    const { data: syncData, error: syncError } = await supabaseAdmin
-      .from('sync_status')
-      .select('last_synced_at')
-      .eq('chatbot_id', chatbotId)
-      .maybeSingle()
-
-    const lastSyncedAt = syncData?.last_synced_at
+    const lastSyncedAt = syncResult.data?.[0]?.last_synced_at
     const shouldSync = forceSync || !lastSyncedAt || 
       (new Date().getTime() - new Date(lastSyncedAt).getTime()) > 5 * 60 * 1000 // 5 minutes
 
@@ -100,130 +94,115 @@ export async function GET(request: Request) {
         size: parseInt(size),
         startDate,
         endDate,
-        useCache: false,
+        useCache: false, // Always get fresh data when syncing
         authToken: undefined
       })
 
+      console.log('Chatbase Response:', {
+        dataLength: chatbaseResponse.data.length,
+        total: chatbaseResponse.total,
+        page: chatbaseResponse.page,
+        size: chatbaseResponse.size
+      })
+
+      // Store in cache (MySQL)
       if (chatbaseResponse.data.length > 0) {
-        // Get existing conversation IDs
-        const { data: existingConvs, error: existingConvsError } = await supabaseAdmin
-          .from('conversations')
-          .select('id, updated_at')
-          .eq('chatbot_id', chatbotId)
-
-        if (existingConvsError) {
-          console.error('Error fetching existing conversations:', existingConvsError)
-        }
-
-        const existingConvsMap = new Map(
-          existingConvs?.map(conv => [conv.id, conv.updated_at]) || []
-        )
-
-        // Filter conversations that need updating
-        const conversationsToUpsert = chatbaseResponse.data.filter(conv => {
-          const existingUpdatedAt = existingConvsMap.get(conv.id)
-          return !existingUpdatedAt || new Date(conv.updated_at) > new Date(existingUpdatedAt)
-        })
-
-        if (conversationsToUpsert.length > 0) {
-          console.log('Upserting conversations:', {
-            count: conversationsToUpsert.length,
-            firstId: conversationsToUpsert[0]?.id
-          })
-          
-          const { error: storeError } = await supabaseAdmin
-            .from('conversations')
-            .upsert(
-              conversationsToUpsert.map(conv => ({
-                id: conv.id,
-                chatbot_id: chatbotId,
-                source: conv.source,
-                whatsapp_number: conv.whatsapp_number,
-                customer: conv.customer,
-                messages: conv.messages,
-                min_score: conv.min_score,
-                form_submission: conv.form_submission,
-                country: conv.country,
-                last_message_at: conv.last_message_at,
-                created_at: conv.created_at,
-                updated_at: conv.updated_at
-              }))
-            )
-
-          if (storeError) {
-            console.error('Error storing conversations:', storeError)
-          } else {
-            // Update sync status
-            const { error: syncUpdateError } = await supabaseAdmin
-              .from('sync_status')
-              .upsert({
-                chatbot_id: chatbotId,
-                last_synced_at: new Date().toISOString(),
-                last_sync_count: conversationsToUpsert.length
-              })
-
-            if (syncUpdateError) {
-              console.error('Error updating sync status:', syncUpdateError)
-            }
-          }
-        }
+        const { CacheService } = await import('@/lib/services/cache')
+        await CacheService.storeConversations(chatbaseResponse.data, chatbotId)
       }
+
+      // Update sync status
+      const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+      await executeMutation(
+        `INSERT INTO sync_status (chatbot_id, last_synced_at, status, sync_count)
+         VALUES (?, ?, 'success', 1)
+         ON DUPLICATE KEY UPDATE 
+         last_synced_at = VALUES(last_synced_at),
+         status = VALUES(status),
+         sync_count = sync_count + 1,
+         updated_at = NOW()`,
+        [chatbotId, now]
+      )
+
+      return NextResponse.json({
+        data: chatbaseResponse.data,
+        page: parseInt(page),
+        size: parseInt(size),
+        total: chatbaseResponse.total || chatbaseResponse.data.length,
+        cached: false
+      })
     }
 
-    // Get conversations from Supabase
-    const { data: conversations, error: fetchError } = await supabaseAdmin
-      .from('conversations')
-      .select('*')
-      .eq('chatbot_id', chatbotId)
-      .gte('created_at', startDate)
-      .lte('created_at', endDate)
-      .order('created_at', { ascending: false })
-      .range((parseInt(page) - 1) * parseInt(size), parseInt(page) * parseInt(size) - 1)
+    // Get from cache
+    const { CacheService } = await import('@/lib/services/cache')
+    const cachedData = await CacheService.getConversations({
+      chatbotId,
+      startDate,
+      endDate,
+      page: parseInt(page),
+      pageSize: parseInt(size)
+    })
 
-    if (fetchError) {
-      console.error('Error fetching conversations:', fetchError)
-      throw new Error('Failed to fetch conversations')
-    }
-
-    // Get total count with date filters
-    const { count } = await supabaseAdmin
-      .from('conversations')
-      .select('*', { count: 'exact', head: true })
-      .eq('chatbot_id', chatbotId)
-      .gte('created_at', startDate)
-      .lte('created_at', endDate)
-
-    console.log('Fetched:', {
-      count,
-      firstId: conversations[0]?.id,
-      dateRange: { startDate, endDate }
+    console.log('Using cache:', {
+      count: cachedData.length,
+      cached: true
     })
 
     return NextResponse.json({
-      data: conversations,
-      total: count || 0,
+      data: cachedData,
       page: parseInt(page),
       size: parseInt(size),
-      lastSyncedAt: syncData?.last_synced_at
+      total: cachedData.length,
+      cached: true
     })
 
-  } catch (error: any) {
-    const errorInfo = {
-      message: error.message,
-      stack: error.stack,
-      requestParams: {
-        chatbotId: requestUrl.searchParams.get('chatbotId'),
-        page: requestUrl.searchParams.get('page'),
-        size: requestUrl.searchParams.get('size'),
-        startDate: requestUrl.searchParams.get('startDate'),
-        endDate: requestUrl.searchParams.get('endDate')
-      }
-    }
-    console.error('API Error:', errorInfo)
-    
+  } catch (error) {
+    console.error('Conversations error:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      url: requestUrl.toString()
+    })
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { 
+        error: 'Failed to fetch conversations', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
       { status: 500 }
     )
   }
-} 
+}
+
+// POST: Store conversations manually
+export async function POST(request: Request) {
+  try {
+    const { userId } = await auth()
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { conversations, chatbotId } = body
+
+    if (!chatbotId || !conversations) {
+      return NextResponse.json(
+        { error: 'chatbotId and conversations are required' },
+        { status: 400 }
+      )
+    }
+
+    const { CacheService } = await import('@/lib/services/cache')
+    await CacheService.storeConversations(conversations, chatbotId)
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('POST /api/conversations error:', error)
+    return NextResponse.json(
+      { error: 'Failed to store conversations' },
+      { status: 500 }
+    )
+  }
+}

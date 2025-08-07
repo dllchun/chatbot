@@ -1,21 +1,8 @@
-import { clerkMiddleware, createRouteMatcher, clerkClient } from '@clerk/nextjs/server';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
 // Define public routes that don't require authentication
 const publicRoutes = ['/sign-in', '/sign-up'];
-
-// Create Supabase admin client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
 
 export default clerkMiddleware(async (auth, request) => {
   try {
@@ -60,53 +47,6 @@ export default clerkMiddleware(async (auth, request) => {
     if (path === '/') {
       console.log('Authenticated user accessing root path, redirecting to /conversations');
       return NextResponse.redirect(new URL('/conversations', request.url));
-    }
-
-    // If authenticated, sync user data with Supabase
-    try {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      console.log('Clerk user data:', user);
-
-      if (user) {
-        const primaryEmail = user.emailAddresses.find(
-          (email) => email.id === user.primaryEmailAddressId
-        );
-        const now = new Date().toISOString();
-
-        const userData = {
-          id: userId,
-          email: primaryEmail?.emailAddress,
-          first_name: user.firstName,
-          last_name: user.lastName,
-          image_url: user.imageUrl,
-          created_at: user.createdAt,
-          updated_at: now,
-          last_sign_in_at: now,
-        };
-
-        const { data: existingUser, error: existingUserError } = await supabaseAdmin
-          .from('users')
-          .select('id')
-          .eq('id', userId)
-          .single();
-
-        console.log('Existing user data:', existingUser);
-        console.log('Existing user error:', existingUserError);
-
-        if (!existingUser) {
-          const { error: upsertError } = await supabaseAdmin
-            .from('users')
-            .upsert(userData)
-            .select();
-
-          if (upsertError) {
-            console.error('Supabase upsert error:', upsertError);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error syncing user with Supabase:', error);
     }
 
     // Add auth token to the response headers for API routes

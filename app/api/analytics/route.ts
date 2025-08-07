@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { getAnalytics } from '@/lib/api/chatbase'
 import { config, validateServerConfig } from '@/lib/config'
-import { createClient } from '@supabase/supabase-js'
+import { executeQuery } from '@/lib/db/queries'
+import { RowDataPacket } from 'mysql2'
+
+export const runtime = 'nodejs';
+
+interface ConversationCountRow extends RowDataPacket {
+  count: number;
+}
 
 export async function GET(request: Request) {
   try {
@@ -37,32 +44,16 @@ export async function GET(request: Request) {
       throw new Error('Missing CHATBASE_API_KEY environment variable')
     }
 
-    // Create Supabase admin client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+    // Check if we have cached conversations in MySQL
+    const countResult = await executeQuery<ConversationCountRow[]>(
+      `SELECT COUNT(*) as count FROM conversations 
+       WHERE chatbot_id = ? AND created_at >= ? AND created_at <= ?`,
+      [chatbotId, startDate, endDate]
     )
 
-    // Get conversations from Supabase for the date range
-    const { data: conversations, error: fetchError } = await supabaseAdmin
-      .from('conversations')
-      .select('*')
-      .eq('chatbot_id', chatbotId)
-      .gte('created_at', startDate)
-      .lte('created_at', endDate)
+    console.log('Conversation count:', countResult.data?.[0]?.count || 0)
 
-    if (fetchError) {
-      console.error('Error fetching conversations:', fetchError)
-      throw new Error('Failed to fetch conversations')
-    }
-
-    // Process analytics from conversations
+    // Get analytics (will use cache if available)
     const analytics = await getAnalytics({
       apiKey,
       chatbotId,
@@ -72,17 +63,21 @@ export async function GET(request: Request) {
       authToken: undefined
     })
 
-    return NextResponse.json(analytics)
-
-  } catch (error: any) {
-    console.error('Analytics API Error:', {
-      message: error.message,
-      stack: error.stack
+    console.log('Analytics response:', {
+      totalConversations: analytics.totalConversations,
+      totalMessages: analytics.totalMessages,
+      sourceDistribution: analytics.sourceDistribution
     })
-    
+
+    return NextResponse.json(analytics)
+  } catch (error) {
+    console.error('Analytics error:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal Server Error' },
+      { 
+        error: 'Failed to fetch analytics', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
       { status: 500 }
     )
   }
-} 
+}

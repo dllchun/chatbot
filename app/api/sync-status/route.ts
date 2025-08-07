@@ -1,71 +1,63 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { createClient } from '@supabase/supabase-js'
+import { executeQuery } from '@/lib/db/queries'
+import { RowDataPacket } from 'mysql2'
 
-export async function GET() {
+export const runtime = 'nodejs';
+
+interface SyncStatusRow extends RowDataPacket {
+  id: number;
+  chatbot_id: string;
+  last_synced_at: Date;
+  status: string;
+  sync_count: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export async function GET(request: Request) {
   try {
-    console.log('Sync status API called')
+    // Get Clerk session
     const { userId } = await auth()
-    
     if (!userId) {
-      console.log('No user ID found')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    console.log('User authenticated:', userId)
+    const url = new URL(request.url)
+    const chatbotId = url.searchParams.get('chatbotId')
 
-    // Create Supabase admin client
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    let query = 'SELECT * FROM sync_status'
+    const params: string[] = []
 
-    // First check if the table exists
-    const { data: tableInfo, error: tableError } = await supabaseAdmin
-      .from('sync_status')
-      .select('*')
-      .limit(1)
-
-    if (tableError) {
-      console.error('Error checking sync_status table:', tableError)
-      return NextResponse.json(
-        { error: 'Failed to access sync_status table' },
-        { status: 500 }
-      )
+    if (chatbotId) {
+      query += ' WHERE chatbot_id = ?'
+      params.push(chatbotId)
     }
 
-    console.log('Table check successful')
+    query += ' ORDER BY last_synced_at DESC'
 
-    // Get all sync status records
-    const { data, error } = await supabaseAdmin
-      .from('sync_status')
-      .select('*')
-      .order('last_synced_at', { ascending: false })
+    const result = await executeQuery<SyncStatusRow[]>(query, params)
 
-    if (error) {
-      console.error('Error fetching sync status:', error)
+    if (result.error) {
+      console.error('Failed to fetch sync status:', result.error)
       return NextResponse.json(
         { error: 'Failed to fetch sync status' },
         { status: 500 }
       )
     }
 
-    console.log('Sync status data:', data)
-    return NextResponse.json(data || [])
+    return NextResponse.json({
+      data: result.data || []
+    })
+
   } catch (error) {
     console.error('Sync status error:', error)
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
-} 
+}
