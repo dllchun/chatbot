@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Settings, Globe } from 'lucide-react'
-import { useTranslation } from 'next-i18next'
+import { useTranslation } from 'react-i18next'
 
 export default function SettingsLayout({
   children,
